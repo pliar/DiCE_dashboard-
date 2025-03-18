@@ -1,6 +1,12 @@
+library(leaflet)  
 library(shiny)
 library(shinydashboard)
 library(shinyjs)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(tidyr)   # For pivot_longer()
+
 
 # Define UI
 ui <- dashboardPage(
@@ -45,6 +51,7 @@ ui <- dashboardPage(
   dashboardBody(
     useShinyjs(),
     
+   
     
     tags$head(
       tags$style(HTML("
@@ -121,10 +128,7 @@ ui <- dashboardPage(
           color: white !important;
           outline: none !important;
         }
-        
-html {
-    -webkit-tap-highlight-color: yellow;
-}
+
 
 
     /* Change the color of the parent menu item when hovering the sub-menu */
@@ -233,7 +237,23 @@ DiCE was created to bring key stakeholders together to address challenges associ
       # Analytics Page
       tabItem(
         tabName = "analytics",
-        h2("Analytics Overview")
+        h2("Analytics Overview"),
+        
+      
+          
+          fluidRow(
+            box(
+              title = "Device Distribution by Country (Map)",
+              width = 6,
+              leafletOutput("deviceMap", height = 400)
+            ),
+            box(
+              title = "Device Type Comparison by Country (Bar Chart)",
+              width = 6,
+              plotlyOutput("deviceBarChart", height = 400)
+            )
+          
+        ),
       ),
       
       # Settings Page
@@ -380,7 +400,47 @@ server <- function(input, output, session) {
       shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
     })
   
-  
+    library(leaflet)
+    library(ggplot2)
+    library(plotly)
+    library(dplyr)
+    
+    # Example dataset: Amount of devices used in different countries
+    device_data <- data.frame(
+      country = c("Germany", "France", "Italy", "Spain", "UK"),
+      lat = c(51.1657, 48.8566, 41.8719, 40.4637, 55.3781),  # Latitude of countries
+      lon = c(10.4515, 2.3522, 12.5674, -3.7492, -3.4360),   # Longitude of countries
+      single_use = c(5000, 4200, 3800, 3000, 4500),
+      reprocessed = c(1200, 1500, 1000, 800, 1300),
+      multi_use = c(800, 900, 1100, 1200, 950)
+    )
+    
+    # Render Leaflet Map
+    output$deviceMap <- renderLeaflet({
+      leaflet(device_data) %>%
+        addTiles() %>%
+        addCircleMarkers(
+          ~lon, ~lat,
+          radius = ~single_use / 1000 + 5,  # Size of the marker based on single-use count
+          color = "red",
+          label = ~paste(country, "<br>Single-use:", single_use, "<br>Reprocessed:", reprocessed, "<br>Multi-use:", multi_use),
+          fillOpacity = 0.6
+        )
+    })
+    
+    # Render Bar Chart using Plotly
+    output$deviceBarChart <- renderPlotly({
+      device_long <- device_data %>%
+        tidyr::pivot_longer(cols = c("single_use", "reprocessed", "multi_use"), names_to = "device_type", values_to = "count")
+      
+      p <- ggplot(device_long, aes(x = country, y = count, fill = device_type)) +
+        geom_bar(stat = "identity", position = "dodge") +
+        labs(title = "Device Type Comparison by Country", x = "Country", y = "Count") +
+        theme_minimal()
+      
+      ggplotly(p)
+    })
+    
   
  
 }
