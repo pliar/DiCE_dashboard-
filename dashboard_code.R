@@ -55,141 +55,156 @@ ui <- dashboardPage(
     
     tags$head(
       tags$style(HTML("
-      
+        
+       /* Turn Arrow 270 degrees */
+        .skin-blue .sidebar-menu > li.treeview > a .fa-angle-left {
+            transform: rotate(270deg);
+        }
       
         /* Change the hover style for a specific menuItem */
-        .main-sidebar .sidebar .sidebar-menu a:hover {
-          background-color: #FF2953 !important;
-          color: white !important;
-          border-left-color: #77F0CC;
-        }
-        
-         /* Make sure the parent menu gets highlighted when a sub-menu is active */
-    
-   
- 
-    .skin-blue .sidebar-menu > li > ul > li.active > a {
+.main-sidebar .sidebar .sidebar-menu a:hover {
+    background-color: #FF2953 !important;
+    color: white !important;
+    border-left-color: #77F0CC;
+}
+
+/* Make sure the parent menu gets highlighted when a sub-menu is active */
+.skin-blue .sidebar-menu > li > ul > li.active > a {
     background-color: #2B2B65 !important;
     color: white !important;
-    }
-    
- 
+}
 
-        
-        .main-sidebar {
-          background-color: #c2c2d6 !important;
-        }
-        
-        .main-sidebar .sidebar .sidebar-menu a {
-          color: #2B2B65 !important;
-          font-weight: bold;
-        }
+.main-sidebar {
+    background-color: #c2c2d6 !important;
+}
 
-        .skin-blue .sidebar-menu > li > ul {
-          background-color: #CBCBD6 !important;
-          width: 100% !important;
-        }
-        
-        /* Prevent hover effects on active menu items */
+.main-sidebar .sidebar .sidebar-menu a {
+    color: #2B2B65 !important;
+    font-weight: bold;
+}
+
+.skin-blue .sidebar-menu > li > ul {
+    background-color: #CBCBD6 !important;
+    width: 100% !important;
+}
+
+/* Prevent hover effects on active menu items */
 .skin-blue .sidebar-menu > li.active > a:hover,
-.skin-blue .sidebar-menu > li.menu-open > a:hover
-{
+.skin-blue .sidebar-menu > li.menu-open > a:hover {
     background-color: #2B2B65 !important; /* Keep the active background */
     color: white !important; /* Keep the active text color */
     cursor: default !important; /* Prevent pointer change */
     border-left-color: #77F0CC !important;
 }
-        
-       
-        .skin-blue .sidebar-menu > li.active > a {
-          background-color: #2B2B65 !important;
-          color: white !important;
-          border-left-color: #77F0CC;
-        }
-          
-        
-        .navbar {
-          background-color: #2B2B65 !important;
-        }
 
-        .btn-custom {
-          background-color: #CBCBD6 !important;
-          color: black !important;
-          border: none;
-        }
-        
-        .btn:hover{
-         background-color: #FF2953 !important;
-        }
+.skin-blue .sidebar-menu > li.active > a {
+    background-color: #2B2B65 !important; /* Keep the active background */
+    color: white !important; /* Keep the active text color */
+    border-left-color: #77F0CC; /* Keep the border color */
+}
 
-        .btn-active {
-          pointer-events: none;
-          background-color: #2B2B65 !important;
-          color: white !important;
-          outline: none !important;
-        }
+/* Ensure About is not dark when selected */
+.skin-blue .sidebar-menu > li.active.about > a {
+    background-color: transparent !important; /* Reset background */
+    color: #2B2B65 !important; /* Reset text color */
+}
 
+/* Ensure Dashboard is only dark when a sub-item is active */
+.skin-blue .sidebar-menu > li.treeview.active > a {
+    background-color: #2B2B65 !important; /* Dark blue when a sub-item is active */
+    color: white !important; /* Keep text color white */
+}
 
+/* Ensure Settings is not dark when selected */
+.skin-blue .sidebar-menu > li.settings.active > a {
+    background-color: transparent !important; /* Reset background */
+    color: #2B2B65 !important; /* Reset text color */
+}
 
-    /* Change the color of the parent menu item when hovering the sub-menu */
-    /* .skin-blue .sidebar-menu > li.treeview:hover > a {
-      background-color: #FF2953 !important; 
-      color:  white !important;
-      border-left-color: #77F0CC;
-    } */
-    
-    .btn-success {
-      background-color: #28a745 !important;
-      border-color: #28a745 !important;
-    }
+.navbar {
+    background-color: #2B2B65 !important;
+}
 
-    .btn-danger {
-      background-color: #dc3545 !important;
-      border-color: #dc3545 !important;
-    }
+.btn-custom {
+    background-color: #CBCBD6 !important;
+    color: black !important;
+    border: none;
+}
 
-    .box {
-      border-radius: 10px !important;
-    }
-    
-    .shiny-notification {
-      position: fixed;
-      top: 60px;
-      right: 20px;
-      background-color: #2B2B65;
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .box.box-solid.box-primary>.box-header{
-      background:  #2B2B65;
-      background-color: #2B2B65;
-      border-radius: 5px 5px 0px 0px!important;
-    }
-    
-    .box.box-solid.box-primary{
-      border: 1px solid #2B2B65;
-       border-radius: 5px !important;
-    }
+.btn:hover {
+    background-color: #FF2953 !important;
+}
 
-    .irs--shiny .irs-bar {
-        border-top: 1px solid #2B2B65;
+.btn-active {
+    pointer-events: none;
+    background-color: #2B2B65 !important;
+    color: white !important;
+    outline: none !important;
+}
+
+/* Change the color of the parent menu item when hovering the sub-menu */
+.skin-blue .sidebar-menu > li.treeview:hover > a {
+    background-color: #FF2953 !important;
+    color: white !important;
+    border-left-color: #77F0CC;
+}
+
+.btn-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.btn-danger {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.box {
+    border-radius: 10px !important;
+}
+
+.shiny-notification {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    background-color: #2B2B65;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.box.box-solid.box-primary > .box-header {
+    background: #2B2B65;
+    background-color: #2B2B65;
+    border-radius: 5px 5px 0px 0px !important;
+}
+
+.box.box-solid.box-primary {
+    border: 1px solid #2B2B65;
+    border-radius: 5px !important;
+}
+
+.irs--shiny .irs-bar {
+    border-top: 1px solid #2B2B65;
     border-bottom: 1px solid #2B2B65;
     background: #2B2B65;
-    }
-    
-    .irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single {
+}
+
+.irs--shiny .irs-from,
+.irs--shiny .irs-to,
+.irs--shiny .irs-single {
     color: #fff;
     background-color: #2B2B65;
-    }
-    
-    input[type=checkbox], input[type=radio]{
-      background-color: #2B2B65;
-    }
-    
-    .skin-blue .main-header .navbar .sidebar-toggle:hover {
-    background-color:  #FF2953;
-    }
+}
+
+input[type=checkbox],
+input[type=radio] {
+    background-color: #2B2B65;
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle:hover {
+    background-color: #FF2953;
+}
     
         
   
@@ -263,8 +278,7 @@ DiCE was created to bring key stakeholders together to address challenges associ
         # User Preferences
         box(title = "User Preferences", width = 6, status = "primary", solidHeader = TRUE,
             selectInput("theme", "Select Theme:", choices = c("Light", "Dark")),
-            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14),
-            radioButtons("sidebar_pos", "Sidebar Position:", choices = c("Left", "Right"), selected = "Left")
+            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14)
         ),
         
         # Notifications
