@@ -7,6 +7,16 @@ library(plotly)
 library(dplyr)
 library(tidyr)   # For pivot_longer()
 
+# Sample data: Amount of devices per country
+device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+
+
+# Sample data: GHG emissions reduction targets
+emission_data <- data.frame(
+  Year = c(2021, 2023, 2030, 2050),
+  Policy = c("EU Climate Law", "IPCC Report", "IPCC Target", "Net Zero Goal"),
+  Emissions = c(100, 95, 55, 0)  # Hypothetical % reduction
+)
 
 # Define UI
 ui <- dashboardPage(
@@ -32,10 +42,11 @@ ui <- dashboardPage(
       menuItem("Dashboard", icon = icon("dashboard"),
                menuSubItem("Environmental", tabName = "dashboard1", icon = icon("leaf")),
                menuSubItem(" Economic", tabName = "dashboard2", icon = icon("dollar-sign")),
-               menuSubItem("Social", tabName = "dashboard3", icon = icon("users"))
+               menuSubItem("Social", tabName = "dashboard3", icon = icon("users")),
+               menuSubItem("Circularity Assessment", tabName = "dashboard4", icon = icon("chart-line"))
       ),
       # Other menu items
-      menuItem("Analytics", tabName = "analytics", icon = icon("chart-line")),
+      
       menuItem("Settings", tabName = "settings", icon = icon("cogs")), 
       menuItem("Contact/Help", tabName = "contact", icon = icon("envelope"))
     )
@@ -51,7 +62,7 @@ ui <- dashboardPage(
   dashboardBody(
     useShinyjs(),
     
-   
+    
     
     tags$head(
       tags$style(HTML("
@@ -132,11 +143,11 @@ ui <- dashboardPage(
 
 
     /* Change the color of the parent menu item when hovering the sub-menu */
-    /* .skin-blue .sidebar-menu > li.treeview:hover > a {
+    .skin-blue .sidebar-menu > li.treeview:hover > a {
       background-color: #FF2953 !important; 
       color:  white !important;
       border-left-color: #77F0CC;
-    } */
+    } 
     
     .btn-success {
       background-color: #28a745 !important;
@@ -164,12 +175,12 @@ ui <- dashboardPage(
     .box.box-solid.box-primary>.box-header{
       background:  #2B2B65;
       background-color: #2B2B65;
-      border-radius: 5px 5px 0px 0px!important;
+      border-radius: 10px 10px 0px 0px!important;
     }
     
     .box.box-solid.box-primary{
       border: 1px solid #2B2B65;
-       border-radius: 5px !important;
+       border-radius: 10px !important;
     }
 
     .irs--shiny .irs-bar {
@@ -213,7 +224,8 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Environmental Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
         actionButton("btn2", "Economic", class = "btn btn-custom"),
-        actionButton("btn3", "Social", class = "btn btn-custom")
+        actionButton("btn3", "Social", class = "btn btn-custom"),
+        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom")
       ),
       
       # Dashboard Page 2 (Economic)
@@ -222,7 +234,8 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Economic Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
-        actionButton("btn3", "Social", class = "btn btn-custom")
+        actionButton("btn3", "Social", class = "btn btn-custom"),
+        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom")
       ),
       
       # Dashboard Page 3 (Social)
@@ -231,29 +244,58 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Social Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom"),
-        actionButton("btn3", "Social", class = "btn btn-custom btn-active")
-      ),
+        actionButton("btn3", "Social", class = "btn btn-custom btn-active"),
+        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        br(),
+        br(),
+        
+        #Target variable visualisation 
+        fluidRow(
+          titlePanel("Climate Policy Targets - IPCC & EU Climate Law"),
+          
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("vizType", "Choose Visualization:",
+                          choices = c("Timeline", "Progress Bar", "GHG Emissions Trend")),
+              helpText("This dashboard visualizes key climate policy goals.")
+            ),
+            
+            mainPanel(
+              plotOutput("plot")
+            )
+          )
+        )
+        
+     ),
       
       # Analytics Page
       tabItem(
-        tabName = "analytics",
-        h2("Analytics Overview"),
+        tabName = "dashboard4",
+        h2("Device Overview"),
+        actionButton("btn1", "Environmental", class = "btn btn-custom"),
+        actionButton("btn2", "Economic", class = "btn btn-custom"),
+        actionButton("btn3", "Social", class = "btn btn-custom"),
+        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom btn-active"),
+        br(),
+        br(),
         
-      
+        fluidRow(
+          box(title = "Select Country", width = 4, status = "primary", solidHeader = TRUE,
+              selectInput("country_select", "Choose a country:", 
+                          choices = c("Select a country", unique(device_data$`Country Name`)), 
+                          selected = "Select a country"))
           
-          fluidRow(
-            box(
-              title = "Device Distribution by Country (Map)",
-              width = 6,
-              leafletOutput("deviceMap", height = 400)
-            ),
-            box(
-              title = "Device Type Comparison by Country (Bar Chart)",
-              width = 6,
-              plotlyOutput("deviceBarChart", height = 400)
-            )
           
         ),
+        
+        fluidRow(
+          box(title = "Device Distribution Map", width = 7, status = "primary", solidHeader = TRUE,
+              leafletOutput("device_map", height = 800)),
+          box(title = "Device Breakdown", width = 5, status = "primary", solidHeader = TRUE,
+              plotlyOutput("device_pie", height = 800))
+          
+          
+        )
       ),
       
       # Settings Page
@@ -268,23 +310,23 @@ DiCE was created to bring key stakeholders together to address challenges associ
         ),
         
         # Notifications
-       # box(title = "Notifications", width = 6, status = "primary", solidHeader = TRUE,
+        # box(title = "Notifications", width = 6, status = "primary", solidHeader = TRUE,
         #    checkboxInput("email_notif", "Receive Email Notifications", TRUE),
-         #   checkboxInput("push_notif", "Receive Push Notifications", FALSE)
+        #   checkboxInput("push_notif", "Receive Push Notifications", FALSE)
         #),
         
         # Account Settings
         #box(title = "Account Settings", width = 6, status = "warning", solidHeader = TRUE,
         #   textInput("username", "Change Username:", ""),
-         #   passwordInput("password", "Change Password:")
+        #   passwordInput("password", "Change Password:")
         #),
         
         # Action Buttons
         fluidRow(
           column(6, actionButton("save_settings", "Save Settings", class = "btn btn-success")),
           column(6, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
-        
-      )
+          
+        )
       ),
       
       # Add the Contact Tab
@@ -292,19 +334,20 @@ DiCE was created to bring key stakeholders together to address challenges associ
         tabName = "contact",
         h2("Contact/Help"),
         p("This is the contact/help page. Please reach out to us for any queries.")
-      )
-    )
-  )
-)
+      ))
+      
+    
+  
+
 
 # Define Server logic
 server <- function(input, output, session) {
   
- 
+  
   
   # Observe btn1 (Environmental) click: Switch to Dashboard 1 and make btn1 active
   observeEvent(input$btn1, {
-   
+    
     updateTabItems(session, "tabs", "dashboard1")
   })
   
@@ -320,6 +363,11 @@ server <- function(input, output, session) {
     updateTabItems(session, "tabs", "dashboard3")
   })
   
+  observeEvent(input$btn4, {
+    
+    updateTabItems(session, "tabs", "dashboard4")
+  })
+  
   # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
   observeEvent(input$btn_contact, {
     
@@ -327,122 +375,190 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # Default values for settings
+  default_settings <- reactiveValues(
+    theme = "Light",
+    fontsize = 14,
+    sidebar_pos = "Left",
+    email_notif = TRUE,
+    push_notif = FALSE,
+    username = "",
+    password = ""
+  )
+  
+  # Observe Save Button Click
+  observeEvent(input$save_settings, {
+    showNotification("Settings Saved!", type = "message")
     
-    # Default values for settings
-    default_settings <- reactiveValues(
-      theme = "Light",
-      fontsize = 14,
-      sidebar_pos = "Left",
-      email_notif = TRUE,
-      push_notif = FALSE,
-      username = "",
-      password = ""
-    )
+    # Store user preferences (can be extended to store in a database)
+    default_settings$theme <- input$theme
+    default_settings$fontsize <- input$fontsize
+    default_settings$sidebar_pos <- input$sidebar_pos
+    default_settings$email_notif <- input$email_notif
+    default_settings$push_notif <- input$push_notif
+    default_settings$username <- input$username
+    default_settings$password <- input$password
+  })
+  
+  # Observe Reset Button Click
+  observeEvent(input$reset_settings, {
+    showNotification("Settings Reset!", type = "warning")
     
-    # Observe Save Button Click
-    observeEvent(input$save_settings, {
-      showNotification("Settings Saved!", type = "message")
-      
-      # Store user preferences (can be extended to store in a database)
-      default_settings$theme <- input$theme
-      default_settings$fontsize <- input$fontsize
-      default_settings$sidebar_pos <- input$sidebar_pos
-      default_settings$email_notif <- input$email_notif
-      default_settings$push_notif <- input$push_notif
-      default_settings$username <- input$username
-      default_settings$password <- input$password
-    })
+    # Reset all inputs to default values
+    updateSelectInput(session, "theme", selected = default_settings$theme)
+    updateSliderInput(session, "fontsize", value = default_settings$fontsize)
+    updateRadioButtons(session, "sidebar_pos", selected = default_settings$sidebar_pos)
+    updateCheckboxInput(session, "email_notif", value = default_settings$email_notif)
+    updateCheckboxInput(session, "push_notif", value = default_settings$push_notif)
+    updateTextInput(session, "username", value = default_settings$username)
+    updateTextInput(session, "password", value = "")
+  })
+  
+  # Function to apply settings dynamically
+  observeEvent(input$save_settings, {
+    showNotification("Settings Saved!", type = "message")
     
-    # Observe Reset Button Click
-    observeEvent(input$reset_settings, {
-      showNotification("Settings Reset!", type = "warning")
-      
-      # Reset all inputs to default values
-      updateSelectInput(session, "theme", selected = default_settings$theme)
-      updateSliderInput(session, "fontsize", value = default_settings$fontsize)
-      updateRadioButtons(session, "sidebar_pos", selected = default_settings$sidebar_pos)
-      updateCheckboxInput(session, "email_notif", value = default_settings$email_notif)
-      updateCheckboxInput(session, "push_notif", value = default_settings$push_notif)
-      updateTextInput(session, "username", value = default_settings$username)
-      updateTextInput(session, "password", value = "")
-    })
-    
-    # Function to apply settings dynamically
-    observeEvent(input$save_settings, {
-      showNotification("Settings Saved!", type = "message")
-      
-      # Apply Theme
-      if (input$theme == "Dark") {
-        shinyjs::addClass(selector = "body", class = "dark-theme")
-        shinyjs::removeClass(selector = "body", class = "light-theme")
-      } else {
-        shinyjs::addClass(selector = "body", class = "light-theme")
-        shinyjs::removeClass(selector = "body", class = "dark-theme")
-      }
-      
-      # Apply Font Size
-      font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
-      shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
-    })
-    
-    # Reset settings to default values
-    observeEvent(input$reset_settings, {
-      showNotification("Settings Reset!", type = "warning")
-      
-      updateSelectInput(session, "theme", selected = "Light")
-      updateSliderInput(session, "fontsize", value = 14)
-      
-      # Reset theme
+    # Apply Theme
+    if (input$theme == "Dark") {
+      shinyjs::addClass(selector = "body", class = "dark-theme")
+      shinyjs::removeClass(selector = "body", class = "light-theme")
+    } else {
       shinyjs::addClass(selector = "body", class = "light-theme")
       shinyjs::removeClass(selector = "body", class = "dark-theme")
-      
-      # Reset font size
-      shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
-    })
+    }
+    
+    # Apply Font Size
+    font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
+    shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
+  })
   
-    library(leaflet)
-    library(ggplot2)
-    library(plotly)
-    library(dplyr)
+  # Reset settings to default values
+  observeEvent(input$reset_settings, {
+    showNotification("Settings Reset!", type = "warning")
     
-    # Example dataset: Amount of devices used in different countries
-    device_data <- data.frame(
-      country = c("Germany", "France", "Italy", "Spain", "UK"),
-      lat = c(51.1657, 48.8566, 41.8719, 40.4637, 55.3781),  # Latitude of countries
-      lon = c(10.4515, 2.3522, 12.5674, -3.7492, -3.4360),   # Longitude of countries
-      single_use = c(5000, 4200, 3800, 3000, 4500),
-      reprocessed = c(1200, 1500, 1000, 800, 1300),
-      multi_use = c(800, 900, 1100, 1200, 950)
-    )
+    updateSelectInput(session, "theme", selected = "Light")
+    updateSliderInput(session, "fontsize", value = 14)
     
-    # Render Leaflet Map
-    output$deviceMap <- renderLeaflet({
-      leaflet(device_data) %>%
-        addTiles() %>%
-        addCircleMarkers(
-          ~lon, ~lat,
-          radius = ~single_use / 1000 + 5,  # Size of the marker based on single-use count
-          color = "red",
-          label = ~paste(country, "<br>Single-use:", single_use, "<br>Reprocessed:", reprocessed, "<br>Multi-use:", multi_use),
-          fillOpacity = 0.6
-        )
-    })
+    # Reset theme
+    shinyjs::addClass(selector = "body", class = "light-theme")
+    shinyjs::removeClass(selector = "body", class = "dark-theme")
     
-    # Render Bar Chart using Plotly
-    output$deviceBarChart <- renderPlotly({
-      device_long <- device_data %>%
-        tidyr::pivot_longer(cols = c("single_use", "reprocessed", "multi_use"), names_to = "device_type", values_to = "count")
+    # Reset font size
+    shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
+  })
+  
+  
+  #render Plot
+  output$plot <- renderPlot({
+    
+    if (input$vizType == "Timeline") {
+      # Timeline Visualization
+      ggplot(emission_data, aes(x = Year, y = 1, label = Policy)) +
+        geom_point(size = 4, color = "blue") +
+        geom_text(vjust = -1, hjust = 0.5, size = 5) +
+        geom_segment(aes(xend = Year, yend = 1), color = "gray", size = 1) +
+        labs(title = "Climate Policy Timeline",
+             x = "Year", y = "Milestones") +
+        theme_minimal() +
+        theme(axis.text.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              panel.grid.major.y = element_blank())
       
-      p <- ggplot(device_long, aes(x = country, y = count, fill = device_type)) +
-        geom_bar(stat = "identity", position = "dodge") +
-        labs(title = "Device Type Comparison by Country", x = "Country", y = "Count") +
+    } else if (input$vizType == "Progress Bar") {
+      # Progress Bar Visualization
+      ggplot(emission_data, aes(x = factor(Year), y = Emissions, fill = Policy)) +
+        geom_col(width = 0.5) +
+        coord_flip() +
+        scale_y_continuous(labels = percent_format(scale = 1)) +
+        labs(title = "Emissions Reduction Progress",
+             x = "Year", y = "Emissions Reduction (%)") +
         theme_minimal()
       
-      ggplotly(p)
-    })
+    } else {
+      # Line Chart - GHG Emissions Reduction Over Time
+      ggplot(emission_data, aes(x = Year, y = Emissions, group = 1)) +
+        geom_line(color = "red", size = 1.5) +
+        geom_point(size = 4, color = "red") +
+        labs(title = "GHG Emissions Reduction Trend",
+             x = "Year", y = "Emissions Reduction (%)") +
+        theme_minimal()
+    }
+  })
+  
+  library(leaflet)
+  library(ggplot2)
+  library(plotly)
+  library(dplyr)
+  
+
+  
+  # Sample data: Amount of devices per country
+  device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+  # Reactive: Track selected country (from map OR dropdown)
+  selected_country <- reactiveVal(NULL)
+
+  
+  output$device_map <- renderLeaflet({
+    leaflet(device_data) %>%
+      addTiles() %>%
+      addCircleMarkers(
+        lng = ~Longitude, lat = ~Latitude, radius = ~sqrt(Total_Devices) /10,
+        color =  "#FF2953", fillOpacity = 0.6,
+        popup = ~paste0("<b>", `Country Name`, "</b><br>Total Devices: ", Total_Devices),
+        layerId = ~`Country Name`
+      )
+  })
+  
+  # Update selection when map marker is clicked
+  observeEvent(input$device_map_marker_click, {
+    selected_country(input$device_map_marker_click$id)
+    updateSelectInput(session, "country_select", selected = input$device_map_marker_click$id)
+  })
+  
+  # Update selection when dropdown is used
+  observeEvent(input$country_select, {
+    if (input$country_select != "Select a country") {
+      selected_country(input$country_select)
+    }
+  })
+  
+  # Render Pie Chart
+  output$device_pie <- renderPlotly({
+    req(selected_country())  # Only update if a country is selected
     
+    # Filter the data for the selected country
+    country_data <- device_data %>% filter(`Country Name` == selected_country())
+    
+    # Prepare data for the pie chart
+    pie_data <- data.frame(
+      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),
+      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)
+    )
+    
+    # Render the pie chart
+  plot_ly(pie_data, labels = ~Category, values = ~Amount, type = "pie",
+            marker = list(colors = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
+      layout(title = paste("Device Breakdown for", country_data$`Country Name`))
+    
+    
+    bar_data <- data.frame(
+      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),  # Custom names for categories
+      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)  # Match to your column names
+    )
+    
+    # Create the bar chart using plotly
+    plot_ly(bar_data, x = ~Category, y = ~Amount, type = "bar",
+            marker = list(color = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
+      layout(title = paste("Device Breakdown for", country_data$`Country Name`),
+             xaxis = list(title = "Device Type"),
+             yaxis = list(title = "Amount"))
+  })
   
  
+ 
+  
+  
 }
 
 # Run the app
