@@ -22,6 +22,7 @@ ui <- dashboardPage(
       tags$img(src = "images/logo2.jpg", width = "85%")
     ),
     
+    # Sidebar menu for light mode
     sidebarMenu(
       id = "tabs",
       menuItem("About", tabName = "about", icon = icon("address-card")),
@@ -36,11 +37,16 @@ ui <- dashboardPage(
     )
   ),
   
-  dashboardBody(    useShinyjs(),
-                    
-                    # Add CSS for both light and dark themes
-                    tags$head(
-                      tags$style(HTML("
+  dashboardBody(
+    useShinyjs(),
+    
+    # Add CSS for both light and dark themes
+    tags$head(
+      tags$style(HTML("
+      /* Turn Arrow 270 degrees */
+        .skin-blue .sidebar-menu > li.treeview > a .fa-angle-left {
+            transform: rotate(270deg);
+        }
         /* Light Theme (Default) */
         body.light-theme {
             background-color: #f5f5f5;
@@ -131,88 +137,156 @@ ui <- dashboardPage(
             background-color: #555;
             border-color: #666;
         }
+
+        /* Custom styles for the sidebar in light mode */
+        .main-sidebar {
+            background-color: #c2c2d6 !important;
+        }
+
+        .main-sidebar .sidebar .sidebar-menu a {
+            color: #2B2B65 !important;
+            font-weight: bold;
+        }
+
+        /* Dark mode styles */
+        .skin-blue .sidebar-menu > li.treeview:hover > a {
+            background-color: #FF2953 !important;
+            color: white !important;
+            border-left-color: #77F0CC;
+        }
+
+        /* Change the hover style for a specific menuItem */
+        .main-sidebar .sidebar .sidebar-menu a:hover {
+            background-color: #FF2953 !important;
+            color: white !important;
+            border-left-color: #77F0CC;
+        }
+
+        /* Make sure the parent menu gets highlighted when a sub-menu is active */
+        .skin-blue .sidebar-menu > li > ul > li.active > a {
+            background-color: #2B2B65 !important;
+            color: white !important;
+        }
+
+        /* Keep the parent menu item color when sub-items are active */
+        .skin-blue .sidebar-menu > li.active > a {
+            background-color: #2B2B65 !important; /* Keep the active background */
+            color: white !important; /* Keep the active text color */
+        }
+
+        .skin-blue .sidebar-menu > li > ul {
+            background-color: #CBCBD6 !important;
+            width: 100% !important;
+        }
+
+        /* Prevent hover effects on active menu items */
+        .skin-blue .sidebar-menu > li.active > a:hover,
+        .skin-blue .sidebar-menu > li.menu-open > a:hover {
+            background-color: #2B2B65 !important; /* Keep the active background */
+            color: white !important; /* Keep the active text color */
+            cursor: default !important; /* Prevent pointer change */
+            border-left-color: #77F0CC !important;
+        }
+
+        /* Ensure About is not dark when selected */
+        .skin-blue .sidebar-menu > li.active.about > a {
+            background-color: transparent !important; /* Reset background */
+            color: #2B2B65 !important; /* Reset text color */
+        }
+
+        /* Ensure Dashboard is only dark when a sub-item is active */
+        .skin-blue .sidebar-menu > li.treeview.active > a {
+            background-color: #2B2B65 !important; /* Dark blue when a sub-item is active */
+            color: white !important; /* Keep text color white */
+        }
+
+        /* Ensure Settings is not dark when selected */
+        .skin-blue .sidebar-menu > li.settings.active > a {
+            background-color: transparent !important; /* Reset background */
+            color: #2B2B65 !important; /* Reset text color */
+        }
       "))
-                    ),
-                    
-                    tabItems(
-                      # Dashboard Page 1 (Environmental)
-                      tabItem(
-                        tabName = "about",
-                        h2("ABOUT Digital Health in Circular Economy (DiCE)"),
-                        p("EU funded project aiming to address the issue of increasing digital health waste."),
-                        p('Electronic waste (e-waste) from digital health devices is a complex and growing problem requiring a holistic solution. E-waste from healthcare products may pose biological or chemical contamination, leading to its incineration, with or without energy recovery. This means that all items are destroyed.
+    ),
+    
+    tabItems(
+      # Dashboard Page 1 (About)
+      tabItem(
+        tabName = "about",
+        h2("ABOUT Digital Health in Circular Economy (DiCE)"),
+        p("EU funded project aiming to address the issue of increasing digital health waste."),
+        p('Electronic waste (e-waste) from digital health devices is a complex and growing problem requiring a holistic solution. E-waste from healthcare products may pose biological or chemical contamination, leading to its incineration, with or without energy recovery. This means that all items are destroyed.
 
 DiCE was created to bring key stakeholders together to address challenges associated with the growing use of digital healthcare products and increasing demand for raw materials to manufacture new electronic devices and other equipment.')
-                      ),
-                      # Dashboard Page 1 (Environmental)
-                      tabItem(
-                        tabName = "dashboard1",
-                        h2("Environmental Overview"),
-                        actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
-                        actionButton("btn2", "Economic", class = "btn btn-custom"),
-                        actionButton("btn3", "Social", class = "btn btn-custom")
-                      ),
-                      
-                      # Dashboard Page 2 (Economic)
-                      tabItem(
-                        tabName = "dashboard2",
-                        h2("Economic Overview"),
-                        actionButton("btn1", "Environmental", class = "btn btn-custom"),
-                        actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
-                        actionButton("btn3", "Social", class = "btn btn-custom")
-                      ),
-                      
-                      # Dashboard Page 3 (Social)
-                      tabItem(
-                        tabName = "dashboard3",
-                        h2("Social Overview"),
-                        actionButton("btn1", "Environmental", class = "btn btn-custom"),
-                        actionButton("btn2", "Economic", class = "btn btn-custom"),
-                        actionButton("btn3", "Social", class = "btn btn-custom btn-active")
-                      ),
-                      
-                      # Analytics Page
-                      tabItem(
-                        tabName = "analytics",
-                        h2("Analytics Overview"),
-                        fluidRow(
-                          box(
-                            title = "Device Distribution by Country (Map)",
-                            width = 6,
-                            leafletOutput("deviceMap", height = 400)
-                          ),
-                          box(
-                            title = "Device Type Comparison by Country (Bar Chart)",
-                            width = 6,
-                            plotlyOutput("            deviceBarChart", height = 400)
-                          )
-                        )
-                      ),
-                      
-                      # Settings Page
-                      tabItem(
-                        tabName = "settings",
-                        h2("Settings"),
-                        # User Preferences
-                        box(title = "User  Preferences", width = 6, status = "primary", solidHeader = TRUE,
-                            selectInput("theme", "Select Theme:", choices = c("Light", "Dark")),
-                            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14)
-                        ),
-                        
-                        # Action Buttons
-                        fluidRow(
-                          column(6, actionButton("save_settings", "Save Settings", class = "btn btn-success")),
-                          column(6, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
-                        )
-                      ),
-                      
-                      # Add the Contact Tab
-                      tabItem(
-                        tabName = "contact",
-                        h2("Contact/Help"),
-                        p("This is the contact/help page. Please reach out to us for any queries.")
-                      )
-                    )
+      ),
+      # Dashboard Page 1 (Environmental)
+      tabItem(
+        tabName = "dashboard1",
+        h2("Environmental Overview"),
+        actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
+        actionButton("btn2", "Economic", class = "btn btn-custom"),
+        actionButton("btn3", "Social", class = "btn btn-custom")
+      ),
+      
+      # Dashboard Page 2 (Economic)
+      tabItem(
+        tabName = "dashboard2",
+        h2("Economic Overview"),
+        actionButton("btn1", "Environmental", class = "btn btn-custom"),
+        actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
+        actionButton("btn3", "Social", class = "btn btn-custom")
+      ),
+      
+      # Dashboard Page 3 (Social)
+      tabItem(
+        tabName = "dashboard3",
+        h2("Social Overview"),
+        actionButton("btn1", "Environmental", class = "btn btn-custom"),
+        actionButton("btn2", "Economic", class = "btn btn-custom"),
+        actionButton("btn3", "Social", class = "btn btn-custom btn-active")
+      ),
+      
+      # Analytics Page
+      tabItem(
+        tabName = "analytics",
+        h2("Analytics Overview"),
+        fluidRow(
+          box(
+            title = "Device Distribution by Country (Map)",
+            width = 6,
+            leafletOutput("deviceMap", height = 400)
+          ),
+          box(
+            title = "Device Type Comparison by Country (Bar Chart)",
+            width = 6,
+            plotlyOutput("deviceBarChart", height = 400)
+          )
+        )
+      ),
+      
+      # Settings Page
+      tabItem(
+        tabName = "settings",
+        h2("Settings"),
+        # User Preferences
+        box(title = "User  Preferences", width = 6, status = "primary", solidHeader = TRUE,
+            selectInput("theme", "Select Theme:", choices = c("Light", "Dark")),
+            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14)
+        ),
+        
+        # Action Buttons
+        fluidRow(
+          column(6, actionButton("save_settings", "Save Settings", class = "btn btn-success")),
+          column(6, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
+        )
+      ),
+      
+      # Add the Contact Tab
+      tabItem(
+        tabName = "contact",
+        h2("Contact/Help"),
+        p("This is the contact/help page. Please reach out to us for any queries.")
+      )
+    )
   )
 )
 
@@ -266,8 +340,12 @@ server <- function(input, output, session) {
     }
     
     # Apply Font Size
-    font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
+    font_size_css <- paste0("body { font-size: ", input$fontsize, "px !important; }");
     shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
+    
+    # Apply Font Size to Sidebar Sub-items
+    sidebar_font_size_css <- paste0(".sidebar-menu .treeview-menu > li > a { font-size: ", input$fontsize, "px !important; }");
+    shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", sidebar_font_size_css, "'; document.head.appendChild(style);"))
   })
   
   # Observe Reset Button Click
@@ -283,7 +361,10 @@ server <- function(input, output, session) {
     shinyjs::removeClass(selector = "body", class = "dark-theme")
     
     # Reset font size to default
-    shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
+    shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = 'body { font-size: 14px !important; }'; document.head.appendChild(style);")
+    
+    # Reset font size for sidebar sub-items
+    shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.sidebar-menu .treeview-menu > li > a { font-size: 14px !important; }'; document.head.appendChild(style);")
   })
   
   # Example dataset: Amount of devices used in different countries
