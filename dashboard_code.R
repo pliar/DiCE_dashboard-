@@ -5,7 +5,8 @@ library(shinyjs)
 library(ggplot2)
 library(plotly)
 library(dplyr)
-library(tidyr)   # For pivot_longer()
+library(tidyr) # For pivot_longer()
+library(readr)
 
 # Sample data: Amount of devices per country
 device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
@@ -49,14 +50,15 @@ ui <- dashboardPage(
       
       menuItem("Settings", tabName = "settings", icon = icon("cogs")), 
       menuItem("Contact/Help", tabName = "contact", icon = icon("envelope"))
-    )
+    
     
     
     
     #div(
     #  style = "position: absolute; bottom: 10px; width: 85%; text-align: center;",
     #  actionButton("btn_contact", "Contact/Help", class = "btn btn-primary btn-block", style = "background-color: #2B2B65; color: white; border-color: #2B2B65;")
-    #)
+    #
+    )
   ),
   
   dashboardBody(
@@ -204,8 +206,8 @@ ui <- dashboardPage(
     
         
   
-      "))
-    ),
+      "))),
+   
     
     tabItems(
       # Dashboard Page 1 (Environmental)
@@ -264,9 +266,9 @@ DiCE was created to bring key stakeholders together to address challenges associ
               plotOutput("plot")
             )
           )
-        )
         
-     ),
+        )
+      ),
       
       # Analytics Page
       tabItem(
@@ -334,232 +336,233 @@ DiCE was created to bring key stakeholders together to address challenges associ
         tabName = "contact",
         h2("Contact/Help"),
         p("This is the contact/help page. Please reach out to us for any queries.")
-      ))
-      
-    
-  
-
-
-# Define Server logic
-server <- function(input, output, session) {
-  
-  
-  
-  # Observe btn1 (Environmental) click: Switch to Dashboard 1 and make btn1 active
-  observeEvent(input$btn1, {
-    
-    updateTabItems(session, "tabs", "dashboard1")
-  })
-  
-  # Observe btn2 (Economic) click: Switch to Dashboard 2 and make btn2 active
-  observeEvent(input$btn2, {
-    
-    updateTabItems(session, "tabs", "dashboard2")
-  })
-  
-  # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
-  observeEvent(input$btn3, {
-    
-    updateTabItems(session, "tabs", "dashboard3")
-  })
-  
-  observeEvent(input$btn4, {
-    
-    updateTabItems(session, "tabs", "dashboard4")
-  })
-  
-  # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
-  observeEvent(input$btn_contact, {
-    
-    updateTabItems(session, "tabs", "contact")
-  })
-  
-  
-  
-  # Default values for settings
-  default_settings <- reactiveValues(
-    theme = "Light",
-    fontsize = 14,
-    sidebar_pos = "Left",
-    email_notif = TRUE,
-    push_notif = FALSE,
-    username = "",
-    password = ""
+      )
+      ) #correct
+    )
   )
   
-  # Observe Save Button Click
-  observeEvent(input$save_settings, {
-    showNotification("Settings Saved!", type = "message")
     
-    # Store user preferences (can be extended to store in a database)
-    default_settings$theme <- input$theme
-    default_settings$fontsize <- input$fontsize
-    default_settings$sidebar_pos <- input$sidebar_pos
-    default_settings$email_notif <- input$email_notif
-    default_settings$push_notif <- input$push_notif
-    default_settings$username <- input$username
-    default_settings$password <- input$password
-  })
-  
-  # Observe Reset Button Click
-  observeEvent(input$reset_settings, {
-    showNotification("Settings Reset!", type = "warning")
     
-    # Reset all inputs to default values
-    updateSelectInput(session, "theme", selected = default_settings$theme)
-    updateSliderInput(session, "fontsize", value = default_settings$fontsize)
-    updateRadioButtons(session, "sidebar_pos", selected = default_settings$sidebar_pos)
-    updateCheckboxInput(session, "email_notif", value = default_settings$email_notif)
-    updateCheckboxInput(session, "push_notif", value = default_settings$push_notif)
-    updateTextInput(session, "username", value = default_settings$username)
-    updateTextInput(session, "password", value = "")
-  })
-  
-  # Function to apply settings dynamically
-  observeEvent(input$save_settings, {
-    showNotification("Settings Saved!", type = "message")
     
-    # Apply Theme
-    if (input$theme == "Dark") {
-      shinyjs::addClass(selector = "body", class = "dark-theme")
-      shinyjs::removeClass(selector = "body", class = "light-theme")
-    } else {
-      shinyjs::addClass(selector = "body", class = "light-theme")
-      shinyjs::removeClass(selector = "body", class = "dark-theme")
-    }
     
-    # Apply Font Size
-    font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
-    shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
-  })
-  
-  # Reset settings to default values
-  observeEvent(input$reset_settings, {
-    showNotification("Settings Reset!", type = "warning")
     
-    updateSelectInput(session, "theme", selected = "Light")
-    updateSliderInput(session, "fontsize", value = 14)
-    
-    # Reset theme
-    shinyjs::addClass(selector = "body", class = "light-theme")
-    shinyjs::removeClass(selector = "body", class = "dark-theme")
-    
-    # Reset font size
-    shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
-  })
-  
-  
-  #render Plot
-  output$plot <- renderPlot({
-    
-    if (input$vizType == "Timeline") {
-      # Timeline Visualization
-      ggplot(emission_data, aes(x = Year, y = 1, label = Policy)) +
-        geom_point(size = 4, color = "blue") +
-        geom_text(vjust = -1, hjust = 0.5, size = 5) +
-        geom_segment(aes(xend = Year, yend = 1), color = "gray", size = 1) +
-        labs(title = "Climate Policy Timeline",
-             x = "Year", y = "Milestones") +
-        theme_minimal() +
-        theme(axis.text.y = element_blank(),
-              axis.ticks.y = element_blank(),
-              panel.grid.major.y = element_blank())
+    # Define Server logic
+    server <- function(input, output, session) {
       
-    } else if (input$vizType == "Progress Bar") {
-      # Progress Bar Visualization
-      ggplot(emission_data, aes(x = factor(Year), y = Emissions, fill = Policy)) +
-        geom_col(width = 0.5) +
-        coord_flip() +
-        scale_y_continuous(labels = percent_format(scale = 1)) +
-        labs(title = "Emissions Reduction Progress",
-             x = "Year", y = "Emissions Reduction (%)") +
-        theme_minimal()
       
-    } else {
-      # Line Chart - GHG Emissions Reduction Over Time
-      ggplot(emission_data, aes(x = Year, y = Emissions, group = 1)) +
-        geom_line(color = "red", size = 1.5) +
-        geom_point(size = 4, color = "red") +
-        labs(title = "GHG Emissions Reduction Trend",
-             x = "Year", y = "Emissions Reduction (%)") +
-        theme_minimal()
-    }
-  })
-  
-  library(leaflet)
-  library(ggplot2)
-  library(plotly)
-  library(dplyr)
-  
-
-  
-  # Sample data: Amount of devices per country
-  device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
-  # Reactive: Track selected country (from map OR dropdown)
-  selected_country <- reactiveVal(NULL)
-
-  
-  output$device_map <- renderLeaflet({
-    leaflet(device_data) %>%
-      addTiles() %>%
-      addCircleMarkers(
-        lng = ~Longitude, lat = ~Latitude, radius = ~sqrt(Total_Devices) /10,
-        color =  "#FF2953", fillOpacity = 0.6,
-        popup = ~paste0("<b>", `Country Name`, "</b><br>Total Devices: ", Total_Devices),
-        layerId = ~`Country Name`
+      
+      # Observe btn1 (Environmental) click: Switch to Dashboard 1 and make btn1 active
+      observeEvent(input$btn1, {
+        
+        updateTabItems(session, "tabs", "dashboard1")
+      })
+      
+      # Observe btn2 (Economic) click: Switch to Dashboard 2 and make btn2 active
+      observeEvent(input$btn2, {
+        
+        updateTabItems(session, "tabs", "dashboard2")
+      })
+      
+      # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
+      observeEvent(input$btn3, {
+        
+        updateTabItems(session, "tabs", "dashboard3")
+      })
+      
+      observeEvent(input$btn4, {
+        
+        updateTabItems(session, "tabs", "dashboard4")
+      })
+      
+      # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
+      observeEvent(input$btn_contact, {
+        
+        updateTabItems(session, "tabs", "contact")
+      })
+      
+      
+      
+      # Default values for settings
+      default_settings <- reactiveValues(
+        theme = "Light",
+        fontsize = 14,
+        sidebar_pos = "Left",
+        email_notif = TRUE,
+        push_notif = FALSE,
+        username = "",
+        password = ""
       )
-  })
-  
-  # Update selection when map marker is clicked
-  observeEvent(input$device_map_marker_click, {
-    selected_country(input$device_map_marker_click$id)
-    updateSelectInput(session, "country_select", selected = input$device_map_marker_click$id)
-  })
-  
-  # Update selection when dropdown is used
-  observeEvent(input$country_select, {
-    if (input$country_select != "Select a country") {
-      selected_country(input$country_select)
+      
+      # Observe Save Button Click
+      observeEvent(input$save_settings, {
+        showNotification("Settings Saved!", type = "message")
+        
+        # Store user preferences (can be extended to store in a database)
+        default_settings$theme <- input$theme
+        default_settings$fontsize <- input$fontsize
+        default_settings$sidebar_pos <- input$sidebar_pos
+        default_settings$email_notif <- input$email_notif
+        default_settings$push_notif <- input$push_notif
+        default_settings$username <- input$username
+        default_settings$password <- input$password
+      })
+      
+      # Observe Reset Button Click
+      observeEvent(input$reset_settings, {
+        showNotification("Settings Reset!", type = "warning")
+        
+        # Reset all inputs to default values
+        updateSelectInput(session, "theme", selected = default_settings$theme)
+        updateSliderInput(session, "fontsize", value = default_settings$fontsize)
+        updateRadioButtons(session, "sidebar_pos", selected = default_settings$sidebar_pos)
+        updateCheckboxInput(session, "email_notif", value = default_settings$email_notif)
+        updateCheckboxInput(session, "push_notif", value = default_settings$push_notif)
+        updateTextInput(session, "username", value = default_settings$username)
+        updateTextInput(session, "password", value = "")
+      })
+      
+      # Function to apply settings dynamically
+      observeEvent(input$save_settings, {
+        showNotification("Settings Saved!", type = "message")
+        
+        # Apply Theme
+        if (input$theme == "Dark") {
+          shinyjs::addClass(selector = "body", class = "dark-theme")
+          shinyjs::removeClass(selector = "body", class = "light-theme")
+        } else {
+          shinyjs::addClass(selector = "body", class = "light-theme")
+          shinyjs::removeClass(selector = "body", class = "dark-theme")
+        }
+        
+        # Apply Font Size
+        font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
+        shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
+      })
+      
+      # Reset settings to default values
+      observeEvent(input$reset_settings, {
+        showNotification("Settings Reset!", type = "warning")
+        
+        updateSelectInput(session, "theme", selected = "Light")
+        updateSliderInput(session, "fontsize", value = 14)
+        
+        # Reset theme
+        shinyjs::addClass(selector = "body", class = "light-theme")
+        shinyjs::removeClass(selector = "body", class = "dark-theme")
+        
+        # Reset font size
+        shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
+      })
+      
+    
+      #render Plot
+      output$plot <- renderPlot({
+        
+        if (input$vizType == "Timeline") {
+          # Timeline Visualization
+          ggplot(emission_data, aes(x = Year, y = 1, label = Policy)) +
+            geom_point(size = 4, color = "blue") +
+            geom_text(vjust = -1, hjust = 0.5, size = 5) +
+            geom_segment(aes(xend = Year, yend = 1), color = "gray", size = 1) +
+            labs(title = "Climate Policy Timeline",
+                 x = "Year", y = "Milestones") +
+            theme_minimal() +
+            theme(axis.text.y = element_blank(),
+                  axis.ticks.y = element_blank(),
+                  panel.grid.major.y = element_blank())
+          
+        } else if (input$vizType == "Progress Bar") {
+          # Progress Bar Visualization
+          ggplot(emission_data, aes(x = factor(Year), y = Emissions, fill = Policy)) +
+            geom_col(width = 0.5) +
+            coord_flip() +
+            scale_y_continuous(labels = percent_format(scale = 1)) +
+            labs(title = "Emissions Reduction Progress",
+                 x = "Year", y = "Emissions Reduction (%)") +
+            theme_minimal()
+          
+        } else {
+          # Line Chart - GHG Emissions Reduction Over Time
+          ggplot(emission_data, aes(x = Year, y = Emissions, group = 1)) +
+            geom_line(color = "red", size = 1.5) +
+            geom_point(size = 4, color = "red") +
+            labs(title = "GHG Emissions Reduction Trend",
+                 x = "Year", y = "Emissions Reduction (%)") +
+            theme_minimal()
+        }
+      })
+      
+      library(leaflet)
+      library(ggplot2)
+      library(plotly)
+      library(dplyr)
+      
+      
+      
+      # Sample data: Amount of devices per country
+      device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+      # Reactive: Track selected country (from map OR dropdown)
+      selected_country <- reactiveVal(NULL)
+      
+      
+      output$device_map <- renderLeaflet({
+        leaflet(device_data) %>%
+          addTiles() %>%
+          addCircleMarkers(
+            lng = ~Longitude, lat = ~Latitude, radius = ~sqrt(Total_Devices) /10,
+            color =  "#FF2953", fillOpacity = 0.6,
+            popup = ~paste0("<b>", `Country Name`, "</b><br>Total Devices: ", Total_Devices),
+            layerId = ~`Country Name`
+          )
+      })
+      
+      # Update selection when map marker is clicked
+      observeEvent(input$device_map_marker_click, {
+        selected_country(input$device_map_marker_click$id)
+        updateSelectInput(session, "country_select", selected = input$device_map_marker_click$id)
+      })
+      
+      # Update selection when dropdown is used
+      observeEvent(input$country_select, {
+        if (input$country_select != "Select a country") {
+          selected_country(input$country_select)
+        }
+      })
+      
+      # Render Pie Chart
+      output$device_pie <- renderPlotly({
+        req(selected_country())  # Only update if a country is selected
+        
+        # Filter the data for the selected country
+        country_data <- device_data %>% filter(`Country Name` == selected_country())
+        
+        # Prepare data for the pie chart
+        pie_data <- data.frame(
+          Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),
+          Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)
+        )
+        
+        # Render the pie chart
+        plot_ly(pie_data, labels = ~Category, values = ~Amount, type = "pie",
+                marker = list(colors = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
+          layout(title = paste("Device Breakdown for", country_data$`Country Name`))
+        
+        
+        bar_data <- data.frame(
+          Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),  # Custom names for categories
+          Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)  # Match to your column names
+        )
+        
+        # Create the bar chart using plotly
+        plot_ly(bar_data, x = ~Category, y = ~Amount, type = "bar",
+                marker = list(color = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
+          layout(title = paste("Device Breakdown for", country_data$`Country Name`),
+                 xaxis = list(title = "Device Type"),
+                 yaxis = list(title = "Amount"))
+      })
+    
+      
     }
-  })
-  
-  # Render Pie Chart
-  output$device_pie <- renderPlotly({
-    req(selected_country())  # Only update if a country is selected
     
-    # Filter the data for the selected country
-    country_data <- device_data %>% filter(`Country Name` == selected_country())
-    
-    # Prepare data for the pie chart
-    pie_data <- data.frame(
-      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),
-      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)
-    )
-    
-    # Render the pie chart
-  plot_ly(pie_data, labels = ~Category, values = ~Amount, type = "pie",
-            marker = list(colors = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
-      layout(title = paste("Device Breakdown for", country_data$`Country Name`))
-    
-    
-    bar_data <- data.frame(
-      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),  # Custom names for categories
-      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)  # Match to your column names
-    )
-    
-    # Create the bar chart using plotly
-    plot_ly(bar_data, x = ~Category, y = ~Amount, type = "bar",
-            marker = list(color = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
-      layout(title = paste("Device Breakdown for", country_data$`Country Name`),
-             xaxis = list(title = "Device Type"),
-             yaxis = list(title = "Amount"))
-  })
-  
- 
- 
-  
-  
-}
-
-# Run the app
-shinyApp(ui, server)
+    # Run the  app
+   shinyApp(ui = ui, server = server)
