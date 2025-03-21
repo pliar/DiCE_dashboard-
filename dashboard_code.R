@@ -12,6 +12,16 @@ library(scales)
 # Sample data: Amount of devices per country
 device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
 
+# Read the CSV file
+cost_data <- read_csv("cost_savings.csv")
+
+# Reshape data for the line plot (long format)
+cost_data_long <- cost_data %>%
+  pivot_longer(cols = starts_with("Lifecycle"), 
+               names_to = "Lifecycle", 
+               values_to = "Cost")
+
+
 
 # Sample data: GHG emissions reduction targets
 emission_data <- data.frame(
@@ -239,7 +249,18 @@ DiCE was created to bring key stakeholders together to address challenges associ
         actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
         actionButton("btn3", "Social", class = "btn btn-custom"),
         actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
-        br()
+        br(),
+        br(),
+        
+        fluidRow(
+          box(title = "Cost Comparison Across Lifecycles", width = 6, status = "primary", solidHeader = TRUE,
+              plotlyOutput("line_plot", height = 400)),
+          box(title = "Total Cost Savings per Recovery Rate", width = 6, status = "primary", solidHeader = TRUE,
+              plotlyOutput("bar_plot", height = 400))
+        )
+          
+          
+        
        
       ),
       
@@ -254,23 +275,15 @@ DiCE was created to bring key stakeholders together to address challenges associ
         br(),
         br(),
         
+        p("European Climate Law sets the intermediate target of reducing net greenhouse gas emissions by at least 55% by 2030, compared to 1990 levels.
+          Thus the plot that will run trough the years 1990 to 2050 "),
+        
         #Target variable visualisation 
         fluidRow(
-          titlePanel("Climate Policy Targets - IPCC & EU Climate Law"),
-          
-          sidebarLayout(
-            sidebarPanel(
-              selectInput("vizType", "Choose Visualization:",
-                          choices = c("Timeline", "Progress Bar", "GHG Emissions Trend")),
-              helpText("This dashboard visualizes key climate policy goals.")
-            ),
-            
-            mainPanel(
-              plotOutput("plot")
-            )
+          titlePanel("Climate Policy Targets - IPCC & EU Climate Law")
           )
         
-        )
+        
       ),
       
       # Analytics Page
@@ -293,11 +306,12 @@ DiCE was created to bring key stakeholders together to address challenges associ
           
         ),
         
+        
         fluidRow(
           box(title = "Device Distribution Map", width = 7, status = "primary", solidHeader = TRUE,
-              leafletOutput("device_map", height = 800)),
+              leafletOutput("device_map", height = 700)),
           box(title = "Device Breakdown", width = 5, status = "primary", solidHeader = TRUE,
-              plotlyOutput("device_pie", height = 800))
+              plotlyOutput("device_pie", height = 700))
           
           
         )
@@ -309,10 +323,14 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Settings"),
         # User Preferences
         box(title = "User Preferences", width = 6, status = "primary", solidHeader = TRUE,
-            selectInput("theme", "Select Theme:", choices = c("Light", "Dark")),
-            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14),
-            radioButtons("sidebar_pos", "Sidebar Position:", choices = c("Left", "Right"), selected = "Left")
+            #selectInput("theme", "Select Theme:", choices = c("Light", "Dark")),
+            sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14)#,
+           # radioButtons("sidebar_pos", "Sidebar Position:", choices = c("Left", "Right"), selected = "Left")
         ),
+        fluidRow(
+          column(6)),
+       
+        br(),
         
         # Notifications
         # box(title = "Notifications", width = 6, status = "primary", solidHeader = TRUE,
@@ -328,8 +346,10 @@ DiCE was created to bring key stakeholders together to address challenges associ
         
         # Action Buttons
         fluidRow(
-          column(6, actionButton("save_settings", "Save Settings", class = "btn btn-success")),
-          column(6, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
+          column(2, actionButton("save_settings", "Save Settings", class = "btn btn-success", style="margin-left:10px;")),
+          
+         
+          column(10, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
           
         )
       ),
@@ -383,33 +403,54 @@ DiCE was created to bring key stakeholders together to address challenges associ
         updateTabItems(session, "tabs", "contact")
       })
       
+    
+      
+      
+      # Line plot: Compare costs across lifecycles by recovery rate
+      output$line_plot <- renderPlotly({
+        ggplot(cost_data_long, aes(x = Lifecycle, y = Cost, group = `Recovery rate`, color = as.factor(`Recovery rate`))) +
+          geom_line(size = 1.2) +
+          geom_point(size = 3) +
+          labs(title = "Cost Comparison Across Lifecycles",
+               x = "Lifecycle",
+               y = "Cost ($)",
+               color = "Recovery Rate") +
+          theme_minimal() +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      })
+      
+      # Bar plot: Total cost savings per recovery rate
+      output$bar_plot <- renderPlotly({
+        ggplot(cost_data, aes(x = as.factor(`Recovery rate`), y = `Total costs`, fill = as.factor(`Recovery rate`))) +
+          geom_bar(stat = "identity", show.legend = FALSE) +
+          labs(title = "Total Cost Savings per Recovery Rate",
+               x = "Recovery Rate",
+               y = "Total Cost Savings ($)") +
+          theme_minimal() +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      })
+      
       
       
       # Default values for settings
       default_settings <- reactiveValues(
-        theme = "Light",
-        fontsize = 14,
-        sidebar_pos = "Left",
-        email_notif = TRUE,
-        push_notif = FALSE,
-        username = "",
-        password = ""
+        fontsize = 14
       )
-      
-      
       
       # Observe Save Button Click
       observeEvent(input$save_settings, {
         showNotification("Settings Saved!", type = "message")
         
-        # Store user preferences (can be extended to store in a database)
-        default_settings$theme <- input$theme
+        # Store user preferences
         default_settings$fontsize <- input$fontsize
-        default_settings$sidebar_pos <- input$sidebar_pos
-        default_settings$email_notif <- input$email_notif
-        default_settings$push_notif <- input$push_notif
-        default_settings$username <- input$username
-        default_settings$password <- input$password
+        
+        # Apply Font Size
+        font_size_css <- paste0("body { font-size: ", input$fontsize, "px !important; }")
+        shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
+        
+        # Apply Font Size to Sidebar Sub-items
+        sidebar_font_size_css <- paste0(".sidebar-menu .treeview-menu > li > a { font-size: ", input$fontsize, "px !important; }")
+        shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", sidebar_font_size_css, "'; document.head.appendChild(style);"))
       })
       
       # Observe Reset Button Click
@@ -417,46 +458,13 @@ DiCE was created to bring key stakeholders together to address challenges associ
         showNotification("Settings Reset!", type = "warning")
         
         # Reset all inputs to default values
-        updateSelectInput(session, "theme", selected = default_settings$theme)
         updateSliderInput(session, "fontsize", value = default_settings$fontsize)
-        updateRadioButtons(session, "sidebar_pos", selected = default_settings$sidebar_pos)
-        updateCheckboxInput(session, "email_notif", value = default_settings$email_notif)
-        updateCheckboxInput(session, "push_notif", value = default_settings$push_notif)
-        updateTextInput(session, "username", value = default_settings$username)
-        updateTextInput(session, "password", value = "")
-      })
-      
-      # Function to apply settings dynamically
-      observeEvent(input$save_settings, {
-        showNotification("Settings Saved!", type = "message")
         
-        # Apply Theme
-        if (input$theme == "Dark") {
-          shinyjs::addClass(selector = "body", class = "dark-theme")
-          shinyjs::removeClass(selector = "body", class = "light-theme")
-        } else {
-          shinyjs::addClass(selector = "body", class = "light-theme")
-          shinyjs::removeClass(selector = "body", class = "dark-theme")
-        }
+        # Reset font size to default
+        shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = 'body { font-size: 14px !important; }'; document.head.appendChild(style);")
         
-        # Apply Font Size
-        font_size_css <- paste0(".dynamic-font { font-size: ", input$fontsize, "px !important; }")
-        shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", font_size_css, "'; document.head.appendChild(style);"))
-      })
-      
-      # Reset settings to default values
-      observeEvent(input$reset_settings, {
-        showNotification("Settings Reset!", type = "warning")
-        
-        updateSelectInput(session, "theme", selected = "Light")
-        updateSliderInput(session, "fontsize", value = 14)
-        
-        # Reset theme
-        shinyjs::addClass(selector = "body", class = "light-theme")
-        shinyjs::removeClass(selector = "body", class = "dark-theme")
-        
-        # Reset font size
-        shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.dynamic-font { font-size: 14px !important; }'; document.head.appendChild(style);")
+        # Reset font size for sidebar sub-items
+        shinyjs::runjs("var style = document.createElement('style'); style.innerHTML = '.sidebar-menu .treeview-menu > li > a { font-size: 14px !important; }'; document.head.appendChild(style);")
       })
       
     
@@ -496,6 +504,7 @@ DiCE was created to bring key stakeholders together to address challenges associ
             theme_minimal()
         }
       })
+      
       
       library(leaflet)
       library(ggplot2)
@@ -565,7 +574,8 @@ DiCE was created to bring key stakeholders together to address challenges associ
                  xaxis = list(title = "Device Type"),
                  yaxis = list(title = "Amount"))
       })
-    
+ 
+      
       
     }
     
