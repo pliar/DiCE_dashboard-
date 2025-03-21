@@ -7,6 +7,7 @@ library(plotly)
 library(dplyr)
 library(tidyr) # For pivot_longer()
 library(readr)
+library(scales)
 
 # Sample data: Amount of devices per country
 device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
@@ -237,7 +238,9 @@ DiCE was created to bring key stakeholders together to address challenges associ
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
         actionButton("btn3", "Social", class = "btn btn-custom"),
-        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom")
+        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        br()
+       
       ),
       
       # Dashboard Page 3 (Social)
@@ -392,6 +395,8 @@ DiCE was created to bring key stakeholders together to address challenges associ
         username = "",
         password = ""
       )
+      
+      
       
       # Observe Save Button Click
       observeEvent(input$save_settings, {
