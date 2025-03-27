@@ -9,6 +9,7 @@ library(tidyr) # For pivot_longer()
 library(readr)
 library(scales)
 library(viridis)
+library(shinyWidgets)
 
 # Load dataset
 climate_change_data <- read.csv("climate_change.csv", sep=",", header=TRUE)
@@ -166,6 +167,10 @@ ui <- dashboardPage(
           color: white !important;
           outline: none !important;
         }
+        
+        #infoButton{
+          border-color: white;
+        }
 
 
 
@@ -228,7 +233,12 @@ ui <- dashboardPage(
     .skin-blue .main-header .navbar .sidebar-toggle:hover {
     background-color:  #FF2953;
     }
-    
+    .dropdown-menu>.active>a, .dropdown-menu>.active>a:focus, .dropdown-menu>.active>a:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #2B2B65;
+    outline: 0;
+}
         
   
       "))),
@@ -248,17 +258,38 @@ DiCE was created to bring key stakeholders together to address challenges associ
       # Dashboard Page 1 (Environmental)
       tabItem(
         tabName = "dashboard1",
+        fluidRow(
+                 column(6,
+          
         h2("Environmental Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
         actionButton("btn2", "Economic", class = "btn btn-custom"),
         actionButton("btn3", "Circularity Assessment", class = "btn btn-custom"),
         #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        ),
+        column(2),
+        br(),
         
-        br(),
-        br(),
+        # Device type selection dropdown
+        column(6,
+               box(
+               pickerInput(
+                 inputId = "deviceType",
+                 label = "Select Device Type",
+                 choices = c("Endocutter", "DDL", "ECG leadset", "Smart pillbox"),
+                 selected = "Endocutter",
+                 multiple = FALSE, 
+                 choicesOpt = list(
+                   disabled = c(FALSE, TRUE, TRUE, TRUE)  # Disable all except "Endocutter"
+                 
+               ),
+               textOutput("selectedDevice")  # Display selected option
+        ))
+        )),
+      
           
         fluidRow(
-          box(title = "Climate Change Impact by Process", width = 11, solidHeader = TRUE, status = "primary",
+          box(title = "Climate Change Impact by Process (Endocutter)", width = 11, solidHeader = TRUE, status = "primary",
               plotlyOutput("barPlot"))
           )
         
@@ -267,12 +298,33 @@ DiCE was created to bring key stakeholders together to address challenges associ
       # Dashboard Page 2 (Economic)
       tabItem(
         tabName = "dashboard2",
+        fluidRow(
+          column(6,
         h2("Economic Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
         actionButton("btn3", "Circularity Assessment", class = "btn btn-custom"),
         #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+          ),
+        column(2),
         br(),
+        
+        # Device type selection dropdown
+        column(6,
+               box(
+                 pickerInput(
+                   inputId = "deviceType",
+                   label = "Select Device Type",
+                   choices = c("Endocutter", "DDL", "ECG leadset", "Smart pillbox"),
+                   selected = "DDL",
+                   multiple = FALSE, 
+                   choicesOpt = list(
+                     disabled = c(TRUE, FALSE, TRUE, TRUE)  # Disable all except "Endocutter"
+                     
+                   ),
+                   textOutput("selectedDevice")  # Display selected option
+                 ))
+        )),
         br(),
         
         fluidRow(
@@ -305,7 +357,11 @@ DiCE was created to bring key stakeholders together to address challenges associ
         
         fluidRow(
           
-          box(title = "Reprocessed Digital Health Devices Market", status = "primary", solidHeader = TRUE,
+          box( title = tagList(
+            "Volume of Reprocessed Digital Health Devices in Europe", 
+            actionButton("infoButton", label = NULL, icon = icon("info-circle"), class = "btn btn-info", style = "margin-left: 10px;")
+          ), 
+          status = "primary", solidHeader = TRUE,
             leafletOutput("map", height = 400), width = 12)
         
           ),
@@ -569,32 +625,35 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  # Observe when slider input changes
+  # Ensure selectedData is defined before using it
   selectedData <- reactive({
     year_col <- paste0("X", input$yearSlider)  # Dynamically get the column for the selected year
     zion_data %>%
       select(Countries, Longitude, Latitude, all_of(year_col)) %>%
-      rename(Volume = all_of(year_col))  # Rename volume column for easier mapping
-   
-    })
+      rename(Volume = all_of(year_col))  # Rename for easier mapping
+  })
   
+  # Define fixed range for color scale
+  volume_range <- c(300, 75000)
+  
+  # Reactive color palette with a fixed domain
   colorPalette <- reactive({
-    colorNumeric(palette = "inferno", domain = selectedData()$Volume)
+    colorNumeric(palette = "plasma", domain = volume_range)  # Fixed range
   })
   
   output$map <- renderLeaflet({
-    data <- selectedData()  # Get 2024 data initially
-    pal <- colorPalette()
+    data <- selectedData()  # Get initial data
+    pal <- colorPalette()   # Use fixed palette
     
     leaflet(data) %>%
       addTiles() %>%
       setView(lng = 10, lat = 50, zoom = 4) %>%
       addCircleMarkers(
         lng = ~Longitude, lat = ~Latitude,
-        radius =~sqrt(Volume) /5,
+        #radius = ~sqrt(Volume) / 5,
+        radius = 12,
         fillColor = ~pal(Volume),
-        color = ~color_palette(Volume),  # Black border for visibility
+        color = "black",  # Black border for visibility
         fillOpacity = 0.8,
         weight = 1,
         popup = ~paste0("<b>", Countries, "</b><br/>",
@@ -602,9 +661,11 @@ server <- function(input, output, session) {
                         "Volume: ", Volume)
       ) %>%
       addLegend(
-        "bottomright",  # Position of the legend
-        pal = color_palette,  # Color palette
-        values = volume_range,  # Fixed range for all years
+        "bottomright",
+        pal = pal, 
+        values = volume_range,  # Fixed range
+        title = "Device Volume",
+        opacity = 1,
         labFormat = labelFormat(suffix = " units") 
       )
   })
@@ -617,9 +678,10 @@ server <- function(input, output, session) {
       clearMarkers() %>%
       addCircleMarkers(
         lng = ~Longitude, lat = ~Latitude,
-        radius = ~sqrt(Volume) /5,
+        #radius = ~sqrt(Volume) / 5,
+        radius = 12,
         fillColor = ~pal(Volume),
-        color = ~color_palette(Volume),
+        color = "black",  # Fixed border color
         fillOpacity = 0.8,
         weight = 1,
         popup = ~paste0("<b>", Countries, "</b><br/>",
@@ -628,12 +690,27 @@ server <- function(input, output, session) {
       ) %>%
       clearControls() %>%
       addLegend(
-        "bottomright", pal = pal, values = data$Volume,
+        "bottomright",
+        pal = pal,
+        values = c(300, 75000),  # Use fixed min-max
         title = "Device Volume",
         opacity = 1
       )
   })
-  
+  # When the info button is clicked, show the modal with description
+  observeEvent(input$infoButton, {
+    showModal(modalDialog(
+      title = "Europe Reprocessed Digital Health Devices Market by Countries, Volume (Units), 2018 - 2032",
+      p("This section visualizes the market for reprocessed digital health devices over the years."),
+      p("The map below shows the distribution of reprocessed digital health devices, with markers representing the volume of devices in each country."),
+      p("The data from 2018 to 2023 represents historical years, with actual data for those years."),
+      p("2023 is the base year, where the data is considered most accurate and serves as the foundation for future projections."),
+      p("The years 2024 to 2032 are projections, based on estimates of market trends, future developments, and expected growth in the digital health devices market."),
+      p("You can use the slider below to change the year and see how the market has evolved historically and how it is projected to change in the future."),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
   
  # library(leaflet)
 #  library(ggplot2)
