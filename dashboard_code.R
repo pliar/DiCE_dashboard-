@@ -8,12 +8,13 @@ library(dplyr)
 library(tidyr) # For pivot_longer()
 library(readr)
 library(scales)
+library(viridis)
 
 # Load dataset
 climate_change_data <- read.csv("climate_change.csv", sep=",", header=TRUE)
 
 # Sample data: Amount of devices per country
-device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+#device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
 
 # Read the CSV file
 cost_data <- read_csv("cost_savings.csv")
@@ -23,7 +24,11 @@ cost_data_long <- cost_data %>%
   pivot_longer(cols = starts_with("Lifecycle"), 
                names_to = "Lifecycle", 
                values_to = "Cost")
+# Read in the dataset
+zion_data <- read.csv("zion_volume_rep.csv")
 
+# Prepare data (assuming that "Year" is a column with the years and "Volume" is the volume per country for each year)
+years <- as.character(2018:2032)
 
 
 # Sample data: GHG emissions reduction targets
@@ -31,6 +36,11 @@ emission_data <- data.frame(
   Year = c(2021, 2023, 2030, 2050),
   Policy = c("EU Climate Law", "IPCC Report", "IPCC Target", "Net Zero Goal"),
   Emissions = c(100, 95, 55, 0)  # Hypothetical % reduction
+)
+volume_range <- range(zion_data[, 2:10], na.rm = TRUE)
+color_palette <- colorNumeric(
+  palette = "viridis",      # Choose your color palette (can use other like 'inferno', 'magma', etc.)
+  domain = volume_range     # Fixed range across all years
 )
 
 # Define UI
@@ -57,8 +67,9 @@ ui <- dashboardPage(
       menuItem("Dashboard", icon = icon("dashboard"),
                menuSubItem("Environmental", tabName = "dashboard1", icon = icon("leaf")),
                menuSubItem("Economic", tabName = "dashboard2", icon = icon("dollar-sign")),
-               menuSubItem("Regulatory", tabName = "dashboard3", icon = icon("users")),
-               menuSubItem("Circularity Assessment", tabName = "dashboard4", icon = icon("chart-line"))
+               menuSubItem("Circularity Assessment", tabName = "dashboard3", icon = icon("users"))
+               #,
+              # menuSubItem("Circularity Assessment", tabName = "dashboard4", icon = icon("chart-line"))
       ),
       # Other menu items
       
@@ -240,8 +251,8 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Environmental Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
         actionButton("btn2", "Economic", class = "btn btn-custom"),
-        actionButton("btn3", "Social", class = "btn btn-custom"),
-        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        actionButton("btn3", "Circularity Assessment", class = "btn btn-custom"),
+        #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
         
         br(),
         br(),
@@ -259,73 +270,84 @@ DiCE was created to bring key stakeholders together to address challenges associ
         h2("Economic Overview"),
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
-        actionButton("btn3", "Social", class = "btn btn-custom"),
-        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        actionButton("btn3", "Circularity Assessment", class = "btn btn-custom"),
+        #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
         br(),
         br(),
         
         fluidRow(
-          box(title = "Cost Comparison Across Lifecycles", width = 6, status = "primary", solidHeader = TRUE,
+          box(title = "Supply Chain Costs across DDL lifecycles", width = 6, status = "primary", solidHeader = TRUE,
               plotlyOutput("line_plot", height = 400)),
-          box(title = "Total Cost Savings per Recovery Rate", width = 6, status = "primary", solidHeader = TRUE,
+          box(title = "Total Cost Savings per Recovery Rate (DDL)", width = 6, status = "primary", solidHeader = TRUE,
               plotlyOutput("bar_plot", height = 400))
         )
-        
-        
-        
-        
       ),
       
       # Dashboard Page 3 (Social)
       tabItem(
         tabName = "dashboard3",
-        h2("Regulatory Overview"),
+        h2("Circularity Assessment"),
         actionButton("btn1", "Environmental", class = "btn btn-custom"),
         actionButton("btn2", "Economic", class = "btn btn-custom"),
-        actionButton("btn3", "Social", class = "btn btn-custom btn-active"),
-        actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        actionButton("btn3", "Circularity Assessment", class = "btn btn-custom btn-active"),
+        #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
         br(),
         br(),
         
         # Second logo
         
         
-        box(title = "Cost Comparison Across Lifecycles", width = 10, status = "primary", solidHeader = TRUE,
-            tags$div(
-              style = "text-align:center; padding:10px;",
-              tags$img(src = "images/authorized_map.png", width = "85%")
-            ))
+      #  box(title = "Cost Comparison Across Lifecycles", width = 10, status = "primary", solidHeader = TRUE,
+      #      tags$div(
+      #        style = "text-align:center; padding:10px;",
+      #        tags$img(src = "images/authorized_map.png", width = "85%")
+      #      )),
+        
+        fluidRow(
+          
+          box(title = "Reprocessed Digital Health Devices Market", status = "primary", solidHeader = TRUE,
+            leafletOutput("map", height = 400), width = 12)
+        
+          ),
+        
+        fluidRow(
+          box(width = 12, align = "center",  # Centered horizontal slider
+              sliderInput("yearSlider", "Select Year", 
+                          min = 2018, max = 2032, value = 2024, step = 1, 
+                          animate = TRUE, width = "100%", sep = ""))
+        )
         
       ),
       
       # Analytics Page
-      tabItem(
-        tabName = "dashboard4",
-        fluidRow(
-          column(6, h2("Device Overview"),
-                 actionButton("btn1", "Environmental", class = "btn btn-custom"),
-                 actionButton("btn2", "Economic", class = "btn btn-custom"),
-                 actionButton("btn3", "Social", class = "btn btn-custom"),
-                 actionButton("btn4", "Circularity Assessment", class = "btn btn-custom btn-active")
-          ),
-          column(2),
-          column(4, 
-                 box(title = "Select Country", width = NULL, status = "primary", solidHeader = TRUE,
-                     selectInput("country_select", label = NULL, 
-                                 choices = c("Select a country", unique(device_data$`Country Name`)), 
-                                 selected = "Select a country"))
-          )),
+     # tabItem(
+      #  tabName = "dashboard4",
+       # fluidRow(
+       #   column(6, h2("Device Overview"),
+       #          actionButton("btn1", "Environmental", class = "btn btn-custom"),
+       #          actionButton("btn2", "Economic", class = "btn btn-custom"),
+       #          actionButton("btn3", "Circularity Assessment", class = "btn btn-custom")
+                 #,
+                 #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom btn-active")
+       #   ),
+        #  column(2),
+        #  column(4, 
+         #        box(title = "Select Country", width = NULL, status = "primary", solidHeader = TRUE,
+        #             selectInput("country_select", label = NULL, 
+          #                       choices = c("Select a country", unique(device_data$`Country Name`)), 
+         #                        selected = "Select a country"))
+         # )),
         
         
-        fluidRow(
-          box(title = "Device Distribution Map", width = 7, status = "primary", solidHeader = TRUE,
-              leafletOutput("device_map", height = 400)),
-          box(title = "Device Breakdown", width = 5, status = "primary", solidHeader = TRUE,
-              plotlyOutput("device_pie", height = 400))
+    #  fluidRow(
+    #      box(title = "Device Distribution Map", width = 7, status = "primary", solidHeader = TRUE,
+    #          leafletOutput("device_map", height = 400)),
+    #      box(title = "Device Breakdown", width = 5, status = "primary", solidHeader = TRUE,
+    #          plotlyOutput("device_pie", height = 400))
           
           
-        )
-      ),
+    #    )
+    #  ),
       
       # Settings Page
       tabItem(
@@ -355,14 +377,14 @@ DiCE was created to bring key stakeholders together to address challenges associ
         #),
         
         # Action Buttons
-        fluidRow(
-          column(2, actionButton("save_settings", "Save Settings", class = "btn btn-success", style="margin-left:10px;")),
+        #fluidRow(
+         # column(2, actionButton("save_settings", "Save Settings", class = "btn btn-success", style="margin-left:10px;")),
           
           
-          column(10, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
+          #column(10, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
           
-        )
-      ),
+        #)
+    #  ),
       
       # Add the Contact Tab
       tabItem(
@@ -371,7 +393,7 @@ DiCE was created to bring key stakeholders together to address challenges associ
         p("This is the contact/help page. Please reach out to us for any queries.")
       )
     ) #correct
-  )
+    ))
 )
 
 
@@ -402,10 +424,10 @@ server <- function(input, output, session) {
     updateTabItems(session, "tabs", "dashboard3")
   })
   
-  observeEvent(input$btn4, {
+#  observeEvent(input$btn4, {
     
-    updateTabItems(session, "tabs", "dashboard4")
-  })
+ #   updateTabItems(session, "tabs", "dashboard4")
+  #})
   
   # Observe btn3 (Social) click: Switch to Dashboard 3 and make btn3 active
   observeEvent(input$btn_contact, {
@@ -425,16 +447,19 @@ server <- function(input, output, session) {
                stat = "identity") +
       geom_point(data = total_impact, aes(x = Process, y = Kg_CO2_eq), 
                  shape = 18, size = 3, color = "black") +  # Diamond shape for total impact
+     
+      
+      geom_text(vjust = -1, hjust = 0.5, size = 5) +
       theme_minimal() +
-      ylab("Kg CO₂-eq/FU") +
-      ggtitle("Climate Change Impact by Process") +
+      ylab("Kg CO₂-eU") +
+      #ggtitle("Climate Change Impact by Process") +
       scale_fill_brewer(palette = "Set2") +
-      theme(axis.text.x = element_text(angle = 20, hjust = 1, size = 12),
+      theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 10),
             axis.title = element_text(size = 12),
             plot.title = element_text(size = 14, face = "bold"),
             legend.position = "bottom",  # Move legend to the bottom
             legend.title = element_blank(),  # Remove legend title
-            legend.box = "horizontal")  # Remove legend title
+            legend.box = "horizontal") 
     
     ggplotly(p)  # Convert ggplot to interactive plotly
   })
@@ -445,21 +470,25 @@ server <- function(input, output, session) {
     ggplot(cost_data_long, aes(x = Lifecycle, y = Cost, group = `Recovery rate`, color = as.factor(`Recovery rate`))) +
       geom_line(size = 1.2) +
       geom_point(size = 3) +
-      labs(title = "Cost Comparison Across Lifecycles",
+      labs(
            x = "Lifecycle",
-           y = "Cost ($)",
+           y = "Cost (1000 euros)",
            color = "Recovery Rate") +
       scale_color_manual(values = c("92%" = "#2B2B65", "80%" = "#FF2953", "60%" = "#006400", "40%" = "#77F0CC")) +  # Custom colors
+      scale_y_continuous(labels = label_number(scale = 0.001)) + 
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
   })  
   # Bar plot: Total cost savings per recovery rate
   output$bar_plot <- renderPlotly({
     ggplot(cost_data, aes(x = as.factor(`Recovery rate`), y = `Total costs`, fill = as.factor(`Recovery rate`))) +
-      geom_bar(stat = "identity", show.legend = FALSE, fill = "#2B2B65") +  # Set the fill color to dark blue
-      labs(title = "Total Cost Savings per Recovery Rate",
+      geom_bar(stat = "identity", show.legend = FALSE, fill = "#2B2B65") + 
+      geom_text(aes(label = label_comma()(round(`Total costs`/1000, 1))), 
+                vjust = -3, color = "#FF2953", size = 4) +# Set the fill color to dark blue
+      labs(
            x = "Recovery Rate",
-           y = "Total Cost Savings ($)") +
+           y = "Total Cost Savings (1000 euros)") +
+      scale_y_continuous(labels = label_comma(scale = 0.001))  +
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
   })
@@ -541,74 +570,132 @@ server <- function(input, output, session) {
   })
   
   
-  library(leaflet)
-  library(ggplot2)
-  library(plotly)
-  library(dplyr)
+  # Observe when slider input changes
+  selectedData <- reactive({
+    year_col <- paste0("X", input$yearSlider)  # Dynamically get the column for the selected year
+    zion_data %>%
+      select(Countries, Longitude, Latitude, all_of(year_col)) %>%
+      rename(Volume = all_of(year_col))  # Rename volume column for easier mapping
+   
+    })
   
+  colorPalette <- reactive({
+    colorNumeric(palette = "inferno", domain = selectedData()$Volume)
+  })
   
-  
-  # Sample data: Amount of devices per country
-  device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
-  # Reactive: Track selected country (from map OR dropdown)
-  selected_country <- reactiveVal(NULL)
-  
-  
-  output$device_map <- renderLeaflet({
-    leaflet(device_data) %>%
+  output$map <- renderLeaflet({
+    data <- selectedData()  # Get 2024 data initially
+    pal <- colorPalette()
+    
+    leaflet(data) %>%
       addTiles() %>%
+      setView(lng = 10, lat = 50, zoom = 4) %>%
       addCircleMarkers(
-        lng = ~Longitude, lat = ~Latitude, radius = ~sqrt(Total_Devices) /40,
-        color =  "#FF2953", fillOpacity = 0.6,
-        popup = ~paste0("<b>", `Country Name`, "</b><br>Total Devices: ", Total_Devices),
-        layerId = ~`Country Name`
+        lng = ~Longitude, lat = ~Latitude,
+        radius =~sqrt(Volume) /5,
+        fillColor = ~pal(Volume),
+        color = ~color_palette(Volume),  # Black border for visibility
+        fillOpacity = 0.8,
+        weight = 1,
+        popup = ~paste0("<b>", Countries, "</b><br/>",
+                        "Year: ", input$yearSlider, "<br/>",
+                        "Volume: ", Volume)
+      ) %>%
+      addLegend(
+        "bottomright",  # Position of the legend
+        pal = color_palette,  # Color palette
+        values = volume_range,  # Fixed range for all years
+        labFormat = labelFormat(suffix = " units") 
       )
   })
   
-  # Update selection when map marker is clicked
-  observeEvent(input$device_map_marker_click, {
-    selected_country(input$device_map_marker_click$id)
-    updateSelectInput(session, "country_select", selected = input$device_map_marker_click$id)
+  observe({
+    data <- selectedData()
+    pal <- colorPalette()
+    
+    leafletProxy("map", data = data) %>%
+      clearMarkers() %>%
+      addCircleMarkers(
+        lng = ~Longitude, lat = ~Latitude,
+        radius = ~sqrt(Volume) /5,
+        fillColor = ~pal(Volume),
+        color = ~color_palette(Volume),
+        fillOpacity = 0.8,
+        weight = 1,
+        popup = ~paste0("<b>", Countries, "</b><br/>",
+                        "Year: ", input$yearSlider, "<br/>",
+                        "Volume: ", Volume)
+      ) %>%
+      clearControls() %>%
+      addLegend(
+        "bottomright", pal = pal, values = data$Volume,
+        title = "Device Volume",
+        opacity = 1
+      )
   })
+  
+  
+ # library(leaflet)
+#  library(ggplot2)
+ # library(plotly)
+ # library(dplyr)
+  
+  
+  
+  # Sample data: Amount of devices per 
+ # device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+  # Reactive: Track selected country (from map OR dropdown)
+#  selected_country <- reactiveVal(NULL)
+  
+  
+ # output$device_map <- renderLeaflet({
+  #  leaflet(device_data) %>%
+   #   addTiles() %>%
+   #   addCircleMarkers(
+  #      lng = ~Longitude, lat = ~Latitude, radius = ~sqrt(Total_Devices) /40,
+  #      color =  "#FF2953", fillOpacity = 0.6,
+  #      popup = ~paste0("<b>", `Country Name`, "</b><br>Total Devices: ", Total_Devices),
+  #      layerId = ~`Country Name`
+  #    )
+#  })
+  
+  # Update selection when map marker is clicked
+ # observeEvent(input$device_map_marker_click, {
+#    selected_country(input$device_map_marker_click$id)
+ #   updateSelectInput(session, "country_select", selected = input$device_map_marker_click$id)
+ # })
   
   # Update selection when dropdown is used
-  observeEvent(input$country_select, {
-    if (input$country_select != "Select a country") {
-      selected_country(input$country_select)
-    }
-  })
+ # observeEvent(input$country_select, {
+#    if (input$country_select != "Select a country") {
+#      selected_country(input$country_select)
+#    }
+ # })
   
-  # Render Pie Chart
-  output$device_pie <- renderPlotly({
-    req(selected_country())  # Only update if a country is selected
+
     
     # Filter the data for the selected country
-    country_data <- device_data %>% filter(`Country Name` == selected_country())
+ #   country_data <- device_data %>% filter(`Country Name` == selected_country())
     
     # Prepare data for the pie chart
-    pie_data <- data.frame(
-      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),
-      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)
-    )
+#    pie_data <- data.frame(
+#      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),
+#      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)
+#    )
+   #
     
-    # Render the pie chart
-    plot_ly(pie_data, labels = ~Category, values = ~Amount, type = "pie",
-            marker = list(colors = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
-      layout(title = paste("Device Breakdown for", country_data$`Country Name`))
-    
-    
-    bar_data <- data.frame(
-      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),  # Custom names for categories
-      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)  # Match to your column names
-    )
+#    bar_data <- data.frame(
+#      Category = c("Multi-use Devices", "Reprocessed Devices", "Single-use Devices"),  # Custom names for categories
+#      Amount = c(country_data$`Multi use`, country_data$Reprocessed, country_data$Singleuse)  # Match to your column names
+#    )
     
     # Create the bar chart using plotly
-    plot_ly(bar_data, x = ~Category, y = ~Amount, type = "bar",
-            marker = list(color = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
-      layout(title = paste("Device Breakdown for", country_data$`Country Name`),
-             xaxis = list(title = "Device Type"),
-             yaxis = list(title = "Amount"))
-  })
+#    plot_ly(bar_data, x = ~Category, y = ~Amount, type = "bar",
+#            marker = list(color = c("#2B2B65", "#FF2953", "#77F0CC"))) %>%
+#      layout(title = paste("Device Breakdown for", country_data$`Country Name`),
+#             xaxis = list(title = "Device Type"),
+#             yaxis = list(title = "Amount"))
+#  })
   
   
   
