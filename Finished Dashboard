@@ -1,0 +1,847 @@
+library(leaflet)  
+library(shiny)
+library(shinydashboard)
+library(shinyjs)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(tidyr) # For pivot_longer()
+library(readr)
+library(scales)
+library(viridis)
+library(shinyWidgets)
+
+# Load dataset
+climate_change_data <- read.csv("./climate_change.csv", sep=",", header=TRUE)
+
+# Sample data: Amount of devices per country
+#device_data <- read_csv("merged_summary_with_lat_lon.csv", locale = locale(encoding = "UTF-8"))
+
+# Read the CSV file
+cost_data <- read_csv("./cost_savings.csv")
+
+# Reshape data for the line plot (long format)
+cost_data_long <- cost_data %>%
+  pivot_longer(cols = starts_with("Lifecycle"), 
+               names_to = "Lifecycle", 
+               values_to = "Cost")
+# Read in the dataset
+zion_data <- read.csv("./zion_volume_rep.csv")
+
+# Prepare data (assuming that "Year" is a column with the years and "Volume" is the volume per country for each year)
+years <- as.character(2018:2032)
+
+
+# Sample data: GHG emissions reduction targets
+emission_data <- data.frame(
+  Year = c(2021, 2023, 2030, 2050),
+  Policy = c("EU Climate Law", "IPCC Report", "IPCC Target", "Net Zero Goal"),
+  Emissions = c(100, 95, 55, 0)  # Hypothetical % reduction
+)
+volume_range <- range(zion_data[, 2:10], na.rm = TRUE)
+color_palette <- colorNumeric(
+  palette = "viridis",      # Choose your color palette (can use other like 'inferno', 'magma', etc.)
+  domain = volume_range     # Fixed range across all years
+)
+
+# Define UI
+ui <- dashboardPage(
+  dashboardHeader(
+    title = tags$img(src = "images/logo1.jpg", style = "height: 110%; width: 120%; margin-left: -20px;")
+  ),  
+  
+  dashboardSidebar(
+    width = 250,
+    
+    # Second logo
+    tags$div(
+      style = "text-align:center; padding:10px;",
+      tags$img(src = "images/logo2.jpg", width = "85%")
+    ),
+    
+    sidebarMenu(
+      id = "tabs",
+      
+      menuItem("About", tabName = "about", icon = icon("address-card")),
+      # Parent menu item: Dashboard with subItems
+      
+      menuItem("Dashboard", icon = icon("dashboard"),
+               menuSubItem("Environmental", tabName = "dashboard1", icon = icon("leaf")),
+               menuSubItem("Economic", tabName = "dashboard2", icon = icon("dollar-sign")),
+               menuSubItem("Circularity Assessment", tabName = "dashboard3", icon = icon("users"))
+               #,
+               # menuSubItem("Circularity Assessment", tabName = "dashboard4", icon = icon("chart-line"))
+      ),
+      # Other menu items
+      
+      menuItem("Settings", tabName = "settings", icon = icon("cogs")), 
+      menuItem("Contact/Help", tabName = "contact", icon = icon("envelope"))
+      
+      
+      
+      
+      #div(
+      #  style = "position: absolute; bottom: 10px; width: 85%; text-align: center;",
+      #  actionButton("btn_contact", "Contact/Help", class = "btn btn-primary btn-block", style = "background-color: #2B2B65; color: white; border-color: #2B2B65;")
+      #
+    )
+  ),
+  
+  dashboardBody(
+    useShinyjs(),
+    
+    
+    
+    tags$head(
+      tags$style(HTML("
+      
+      
+        /* Change the hover style for a specific menuItem */
+        .main-sidebar .sidebar .sidebar-menu a:hover {
+          background-color: #FF2953 !important;
+          color: white !important;
+          border-left-color: #77F0CC;
+        }
+        
+         /* Make sure the parent menu gets highlighted when a sub-menu is active */
+    
+   
+ 
+    .skin-blue .sidebar-menu > li > ul > li.active > a {
+    background-color: #2B2B65 !important;
+    color: white !important;
+    }
+    
+ 
+
+        
+        .main-sidebar {
+          background-color: #c2c2d6 !important;
+        }
+        
+        .main-sidebar .sidebar .sidebar-menu a {
+          color: #2B2B65 !important;
+          font-weight: bold;
+        }
+
+        .skin-blue .sidebar-menu > li > ul {
+          background-color: #CBCBD6 !important;
+          width: 100% !important;
+        }
+        
+        /* Prevent hover effects on active menu items */
+.skin-blue .sidebar-menu > li.active > a:hover,
+.skin-blue .sidebar-menu > li.menu-open > a:hover
+{
+    background-color: #2B2B65 !important; /* Keep the active background */
+    color: white !important; /* Keep the active text color */
+    cursor: default !important; /* Prevent pointer change */
+    border-left-color: #77F0CC !important;
+}
+        
+       
+        .skin-blue .sidebar-menu > li.active > a {
+          background-color: #2B2B65 !important;
+          color: white !important;
+          border-left-color: #77F0CC;
+        }
+          
+        
+        .navbar {
+          background-color: #2B2B65 !important;
+        }
+
+        .btn-custom {
+          background-color: #CBCBD6 !important;
+          color: black !important;
+          border: none;
+        }
+        
+        .btn:hover{
+         background-color: #FF2953 !important;
+        }
+
+        .btn-active {
+          pointer-events: none;
+          background-color: #2B2B65 !important;
+          color: white !important;
+          outline: none !important;
+        }
+        
+        #infoButton{
+          border-color: white;
+        }
+
+
+
+    /* Change the color of the parent menu item when hovering the sub-menu */
+    .skin-blue .sidebar-menu > li.treeview:hover > a {
+      background-color: #FF2953 !important; 
+      color:  white !important;
+      border-left-color: #77F0CC;
+    } 
+    
+    .btn-success {
+      background-color: #28a745 !important;
+      border-color: #28a745 !important;
+    }
+
+    .btn-danger {
+      background-color: #dc3545 !important;
+      border-color: #dc3545 !important;
+    }
+
+    .box {
+      border-radius: 10px !important;
+    }
+    
+    .shiny-notification {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background-color: #2B2B65;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .box.box-solid.box-primary>.box-header{
+      background:  #2B2B65;
+      background-color: #2B2B65;
+      border-radius: 10px 10px 0px 0px!important;
+    }
+    
+    .box.box-solid.box-primary{
+      border: 1px solid #2B2B65;
+       border-radius: 10px !important;
+    }
+
+    .irs--shiny .irs-bar {
+        border-top: 1px solid #2B2B65;
+    border-bottom: 1px solid #2B2B65;
+    background: #2B2B65;
+    }
+    
+    .irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single {
+    color: #fff;
+    background-color: #2B2B65;
+    }
+    
+    input[type=checkbox], input[type=radio]{
+      background-color: #2B2B65;
+    }
+    
+    .skin-blue .main-header .navbar .sidebar-toggle:hover {
+    background-color:  #FF2953;
+    }
+    .dropdown-menu>.active>a, .dropdown-menu>.active>a:focus, .dropdown-menu>.active>a:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #2B2B65;
+    outline: 0;
+}
+        
+  
+      "))),
+    
+    
+    tabItems(
+      # Dashboard Page 1 (Environmental)
+      tabItem(
+        tabName = "about",
+        h2("ABOUT Digital Health in Circular Economy (DiCE)"),
+        p("EU funded project aiming to address the issue of increasing digital health waste."),
+        p('Electronic waste (e-waste) from digital health devices is a complex and growing problem requiring a holistic solution. E-waste from healthcare products may pose biological or chemical contamination, leading to its incineration, with or without energy recovery. This means that all items are destroyed.
+
+DiCE was created to bring key stakeholders together to address challenges associated with the growing use of digital healthcare products and increasing demand for raw materials to manufacture new electronic devices and other equipment.')
+        
+      ),
+      # Dashboard Page 1 (Environmental)
+      tabItem(
+        tabName = "dashboard1",
+        fluidRow(
+          column(6,
+                 
+                 h2("Environmental Overview"),
+                 actionButton("btn1", "Environmental", class = "btn btn-custom btn-active"),
+                 actionButton("btn2", "Economic", class = "btn btn-custom"),
+                 actionButton("btn3", "Circularity Assessment", class = "btn btn-custom"),
+                 #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+          ),
+          column(2),
+          br(),
+          
+          # Device type selection dropdown
+          column(6,
+                 box(
+                   pickerInput(
+                     inputId = "deviceType",
+                     label = "Select Device Type",
+                     choices = c("Endocutter", "DDL", "ECG leadset", "Smart pillbox"),
+                     selected = "Endocutter",
+                     multiple = FALSE, 
+                     choicesOpt = list(
+                       disabled = c(FALSE, TRUE, TRUE, TRUE)  # Disable all except "Endocutter"
+                       
+                     ),
+                     textOutput("selectedDevice")  # Display selected option
+                   ))
+          )),
+        fluidRow(
+          box(title = tagList(
+            "Climate Change Impact by Process (Endocutter)",
+            actionButton("climateInfoButton", label = NULL, icon = icon("info-circle"), 
+                         class = "btn btn-info", style = "margin-left: 10px;")
+          ), width = 11, solidHeader = TRUE, status = "primary",
+          plotlyOutput("barPlot"))
+        )
+      ),
+      
+      # Dashboard Page 2 (Economic)
+      tabItem(
+        tabName = "dashboard2",
+        fluidRow(
+          column(6,
+                 h2("Economic Overview"),
+                 actionButton("btn1", "Environmental", class = "btn btn-custom"),
+                 actionButton("btn2", "Economic", class = "btn btn-custom btn-active"),
+                 actionButton("btn3", "Circularity Assessment", class = "btn btn-custom")
+                 #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+          ),
+          column(2),
+          br(),
+          
+          # Device type selection dropdown
+          column(6,
+                 box(
+                   pickerInput(
+                     inputId = "deviceType",
+                     label = "Select Device Type",
+                     choices = c("Endocutter", "DDL", "ECG leadset", "Smart pillbox"),
+                     selected = "DDL",
+                     multiple = FALSE, 
+                     choicesOpt = list(
+                       disabled = c(TRUE, FALSE, TRUE, TRUE)  # Disable all except "Endocutter"
+                       
+                     ),
+                     textOutput("selectedDevice")  # Display selected option
+                   ))
+          )),
+        br(),
+        
+        fluidRow(
+          box(title = tagList(
+            "Supply Chain Costs across DDL lifecycles",
+            actionButton("costInfoButton", label = NULL, icon = icon("info-circle"), 
+                         class = "btn btn-info", style = "margin-left: 10px;")
+          ), width = 6, status = "primary", solidHeader = TRUE,
+          plotlyOutput("line_plot", height = 400)),
+          box(title = tagList(
+            "Total Cost Savings per Recovery Rate (DDL)",
+            actionButton("savingsInfoButton", label = NULL, icon = icon("info-circle"), 
+                         class = "btn btn-info", style = "margin-left: 10px;")
+          ), width = 6, status = "primary", solidHeader = TRUE,
+          plotlyOutput("bar_plot", height = 400))
+        )
+      ),
+      
+      
+      # Dashboard Page 3 (Social)
+      tabItem(
+        tabName = "dashboard3",
+        h2("Circularity Assessment"),
+        actionButton("btn1", "Environmental", class = "btn btn-custom"),
+        actionButton("btn2", "Economic", class = "btn btn-custom"),
+        actionButton("btn3", "Circularity Assessment", class = "btn btn-custom btn-active"),
+        #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom"),
+        br(),
+        br(),
+        
+        # Second logo
+        
+        
+        #  box(title = "Cost Comparison Across Lifecycles", width = 10, status = "primary", solidHeader = TRUE,
+        #      tags$div(
+        #        style = "text-align:center; padding:10px;",
+        #        tags$img(src = "images/authorized_map.png", width = "85%")
+        #      )),
+        
+        fluidRow(
+          
+          box( title = tagList(
+            "Volume of Reprocessed Digital Health Devices in Europe", 
+            actionButton("infoButton", label = NULL, icon = icon("info-circle"), class = "btn btn-info", style = "margin-left: 10px;")
+          ), 
+          status = "primary", solidHeader = TRUE,
+          leafletOutput("map", height = 400), width = 12)
+          
+        ),
+        
+        fluidRow(
+          box(width = 12, align = "center",  # Centered horizontal slider
+              sliderInput("yearSlider", "Select Year", 
+                          min = 2018, max = 2032, value = 2024, step = 1, 
+                          animate = TRUE, width = "100%", sep = ""))
+        )
+        
+      ),
+      
+      # Analytics Page
+      # tabItem(
+      #  tabName = "dashboard4",
+      # fluidRow(
+      #   column(6, h2("Device Overview"),
+      #          actionButton("btn1", "Environmental", class = "btn btn-custom"),
+      #          actionButton("btn2", "Economic", class = "btn btn-custom"),
+      #          actionButton("btn3", "Circularity Assessment", class = "btn btn-custom")
+      #,
+      #actionButton("btn4", "Circularity Assessment", class = "btn btn-custom btn-active")
+      #   ),
+      #  column(2),
+      #  column(4, 
+      #        box(title = "Select Country", width = NULL, status = "primary", solidHeader = TRUE,
+      #             selectInput("country_select", label = NULL, 
+      #                       choices = c("Select a country", unique(device_data$`Country Name`)), 
+      #                        selected = "Select a country"))
+      # )),
+      
+      
+      #  fluidRow(
+      #      box(title = "Device Distribution Map", width = 7, status = "primary", solidHeader = TRUE,
+      #          leafletOutput("device_map", height = 400)),
+      #      box(title = "Device Breakdown", width = 5, status = "primary", solidHeader = TRUE,
+      #          plotlyOutput("device_pie", height = 400))
+      
+      
+      #    )
+      #  ),
+      
+      
+      # Settings Page
+      tabItem(
+        tabName = "settings",
+        h2("Settings"),
+        fluidRow(
+          # User Preferences Box
+          column(6,
+                 box(title = "User Preferences", width = NULL, status = "primary", solidHeader = TRUE,
+                     sliderInput("fontsize", "Font Size:", min = 10, max = 24, value = 14),
+                     checkboxInput("darkMode", "Enable Dark Mode", value = FALSE)
+                 )
+          ),
+          # Save and Reset Buttons remain the same
+          column(6,
+                 actionButton("save_settings", "Save Settings", class = "btn btn-success", 
+                              style = "margin-bottom: 10px;"),
+                 br(),
+                 actionButton("reset_settings", "Reset Settings", class = "btn btn-danger")
+          )
+        ),
+        br()
+      ),
+      
+      
+      # Notifications
+      # box(title = "Notifications", width = 6, status = "primary", solidHeader = TRUE,
+      #    checkboxInput("email_notif", "Receive Email Notifications", TRUE),
+      #   checkboxInput("push_notif", "Receive Push Notifications", FALSE)
+      #),
+      
+      # Account Settings
+      #box(title = "Account Settings", width = 6, status = "warning", solidHeader = TRUE,
+      #   textInput("username", "Change Username:", ""),
+      #   passwordInput("password", "Change Password:")
+      #),
+      
+      # Action Buttons
+      #fluidRow(
+      # column(2, actionButton("save_settings", "Save Settings", class = "btn btn-success", style="margin-left:10px;")),
+      
+      
+      #column(10, actionButton("reset_settings", "Reset to Default", class = "btn btn-danger"))
+      
+      #)
+      #  ),
+      
+      # Add the Contact Tab
+      tabItem(
+        tabName = "contact",
+        h2("Contact/Help"),
+        p("This is the contact/help page. Please reach out to us for any queries.")
+      )
+    ) #correct
+  ))
+
+
+
+
+
+
+
+# Define Server logic
+server <- function(input, output, session) {
+  
+  # Define theme variables for light/dark mode
+  plotTheme <- reactive({
+    if (input$darkMode) {
+      # Dark theme
+      theme_minimal() +
+        theme(
+          plot.background = element_rect(fill = "#121212", color = "#121212"),
+          panel.background = element_rect(fill = "#1E1E1E", color = "#1E1E1E"),
+          panel.grid.major = element_line(color = "#2d2d2d"),
+          panel.grid.minor = element_line(color = "#2d2d2d"),
+          text = element_text(color = "#ffffff"),
+          axis.text = element_text(color = "#ffffff"),
+          axis.title = element_text(color = "#ffffff"),
+          legend.background = element_rect(fill = "#1E1E1E"),
+          legend.text = element_text(color = "#ffffff"),
+          legend.title = element_text(color = "#ffffff")
+        )
+    } else {
+      # Light theme
+      theme_minimal()
+    }
+  })
+  
+  # Plot layout settings based on dark/light mode
+  plotLayout <- reactive({
+    if (input$darkMode) {
+      list(
+        plot_bgcolor = "#1E1E1E",
+        paper_bgcolor = "#121212",
+        font = list(color = "#ffffff"),
+        xaxis = list(gridcolor = "#2d2d2d", color = "#ffffff"),
+        yaxis = list(gridcolor = "#2d2d2d", color = "#ffffff")
+      )
+    } else {
+      list()
+    }
+  })
+  
+  # Tab navigation handlers
+  observeEvent(input$btn1, {
+    updateTabItems(session, "tabs", "dashboard1")
+  })
+  
+  observeEvent(input$btn2, {
+    updateTabItems(session, "tabs", "dashboard2")
+  })
+  
+  observeEvent(input$btn3, {
+    updateTabItems(session, "tabs", "dashboard3")
+  })
+  
+  observeEvent(input$btn_contact, {
+    updateTabItems(session, "tabs", "contact")
+  })
+  
+  # Environmental dashboard plot
+  output$barPlot <- renderPlotly({
+    stacked_data <- climate_change_data %>% filter(Category != "Total impact")
+    total_impact <- climate_change_data %>% filter(Category == "Total impact")
+    
+    p <- ggplot() +
+      geom_bar(data = stacked_data, aes(x = Process, y = Kg_CO2_eq, fill = Category), 
+               stat = "identity") +
+      geom_point(data = total_impact, aes(x = Process, y = Kg_CO2_eq), 
+                 shape = 18, size = 3, color = if(input$darkMode) "white" else "black") +
+      geom_text(vjust = -1, hjust = 0.5, size = 5) +
+      ylab("Kg COâ-eU") +
+      scale_fill_brewer(palette = if(input$darkMode) "Dark2" else "Set2") +
+      theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 10),
+            axis.title = element_text(size = 12),
+            plot.title = element_text(size = 14, face = "bold"),
+            legend.position = "bottom",
+            legend.title = element_blank(),
+            legend.box = "horizontal") +
+      plotTheme()
+    
+    ggplotly(p) %>% layout(plotLayout())
+  })
+  
+  # Economic dashboard plots
+  output$line_plot <- renderPlotly({
+    p <- ggplot(cost_data_long, 
+           aes(x = Lifecycle, y = Cost, group = `Recovery rate`, 
+               color = as.factor(`Recovery rate`))) +
+      geom_line(size = 1.2) +
+      geom_point(size = 3) +
+      labs(x = "Lifecycle",
+           y = "Cost (1000 euros)",
+           color = "Recovery Rate") +
+      scale_color_manual(values = c("92%" = "#2B2B65", 
+                                   "80%" = "#FF2953", 
+                                   "60%" = "#006400", 
+                                   "40%" = "#77F0CC")) +
+      scale_y_continuous(labels = label_number(scale = 0.001)) + 
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      plotTheme()
+    
+    ggplotly(p) %>% layout(plotLayout())
+  })
+  
+  output$bar_plot <- renderPlotly({
+    p <- ggplot(cost_data, 
+           aes(x = as.factor(`Recovery rate`), y = `Total costs`)) +
+      geom_bar(stat = "identity", fill = "#2B2B65") + 
+      geom_text(aes(label = label_comma()(round(`Total costs`/1000, 1))), 
+                vjust = -3, color = "#FF2953", size = 4) +
+      labs(x = "Recovery Rate",
+           y = "Total Cost Savings (1000 euros)") +
+      scale_y_continuous(labels = label_comma(scale = 0.001)) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      plotTheme()
+    
+    ggplotly(p) %>% layout(plotLayout())
+  })
+  
+  # Map data preparation
+  selectedData <- reactive({
+    year_col <- paste0("X", input$yearSlider)
+    zion_data %>%
+      select(Countries, Longitude, Latitude, all_of(year_col)) %>%
+      rename(Volume = all_of(year_col))
+  })
+  
+  # Map color palette
+  colorPalette <- reactive({
+    colorNumeric(palette = "plasma", domain = c(300, 75000))
+  })
+  
+  # Map rendering
+  output$map <- renderLeaflet({
+    data <- selectedData()
+    pal <- colorPalette()
+    
+    leaflet(data) %>%
+      addTiles() %>%
+      setView(lng = 10, lat = 50, zoom = 4) %>%
+      addCircleMarkers(
+        lng = ~Longitude, lat = ~Latitude,
+        radius = 12,
+        fillColor = ~pal(Volume),
+        color = "black",
+        fillOpacity = 0.8,
+        weight = 1,
+        popup = ~paste0("<b>", Countries, "</b><br/>",
+                       "Year: ", input$yearSlider, "<br/>",
+                       "Volume: ", Volume)
+      ) %>%
+      addLegend(
+        "bottomright",
+        pal = pal, 
+        values = c(300, 75000),
+        title = "Device Volume",
+        opacity = 1,
+        labFormat = labelFormat(suffix = " units")
+      )
+  })
+  
+  # Map updates
+  observe({
+    data <- selectedData()
+    pal <- colorPalette()
+    
+    leafletProxy("map", data = data) %>%
+      clearMarkers() %>%
+      addCircleMarkers(
+        lng = ~Longitude, lat = ~Latitude,
+        radius = 12,
+        fillColor = ~pal(Volume),
+        color = "black",
+        fillOpacity = 0.8,
+        weight = 1,
+        popup = ~paste0("<b>", Countries, "</b><br/>",
+                       "Year: ", input$yearSlider, "<br/>",
+                       "Volume: ", Volume)
+      ) %>%
+      clearControls() %>%
+      addLegend(
+        "bottomright",
+        pal = pal,
+        values = c(300, 75000),
+        title = "Device Volume",
+        opacity = 1
+      )
+  })
+  
+  # Settings management
+  default_settings <- reactiveValues(
+    fontsize = 14,
+    darkMode = FALSE
+  )
+  
+  # Save settings handler
+  observeEvent(input$save_settings, {
+    showNotification("Settings Saved!", type = "message")
+    
+    default_settings$fontsize <- input$fontsize
+    default_settings$darkMode <- input$darkMode
+    
+    font_size_css <- paste0("body { font-size: ", input$fontsize, "px !important; }")
+    shinyjs::runjs(paste0("var style = document.createElement('style'); style.innerHTML = '", 
+                         font_size_css, "'; document.head.appendChild(style);"))
+    
+    if (input$darkMode) {
+      shinyjs::runjs("
+        document.body.style.backgroundColor = '#121212';
+        document.body.style.color = '#ffffff';
+        document.getElementsByClassName('content-wrapper')[0].style.backgroundColor = '#121212';
+        
+        var boxes = document.getElementsByClassName('box');
+        for (var i = 0; i < boxes.length; i++) {
+          boxes[i].style.backgroundColor = '#1E1E1E';
+          boxes[i].style.color = '#ffffff';
+        }
+        
+        var boxHeaders = document.getElementsByClassName('box-header');
+        for (var i = 0; i < boxHeaders.length; i++) {
+          boxHeaders[i].style.backgroundColor = '#2d2d2d';
+        }
+        
+        var modals = document.getElementsByClassName('modal-content');
+        for (var i = 0; i < modals.length; i++) {
+          modals[i].style.backgroundColor = '#1E1E1E';
+          modals[i].style.color = '#ffffff';
+        }
+        
+        var modalHeaders = document.getElementsByClassName('modal-header');
+        for (var i = 0; i < modalHeaders.length; i++) {
+          modalHeaders[i].style.backgroundColor = '#2d2d2d';
+          modalHeaders[i].style.color = '#ffffff';
+        }
+      ")
+    } else {
+      shinyjs::runjs("
+        document.body.style.backgroundColor = '';
+        document.body.style.color = '';
+        document.getElementsByClassName('content-wrapper')[0].style.backgroundColor = '';
+        
+        var boxes = document.getElementsByClassName('box');
+        for (var i = 0; i < boxes.length; i++) {
+          boxes[i].style.backgroundColor = '';
+          boxes[i].style.color = '';
+        }
+        
+        var boxHeaders = document.getElementsByClassName('box-header');
+        for (var i = 0; i < boxHeaders.length; i++) {
+          boxHeaders[i].style.backgroundColor = '';
+        }
+        
+        var modals = document.getElementsByClassName('modal-content');
+        for (var i = 0; i < modals.length; i++) {
+          modals[i].style.backgroundColor = '';
+          modals[i].style.color = '';
+        }
+        
+        var modalHeaders = document.getElementsByClassName('modal-header');
+        for (var i = 0; i < modalHeaders.length; i++) {
+          modalHeaders[i].style.backgroundColor = '';
+          modalHeaders[i].style.color = '';
+        }
+      ")
+    }
+  })
+  
+  # Reset settings handler
+  observeEvent(input$reset_settings, {
+    showNotification("Settings Reset!", type = "warning")
+    
+    updateSliderInput(session, "fontsize", value = 14)
+    updateCheckboxInput(session, "darkMode", value = FALSE)
+    
+    shinyjs::runjs("
+      var oldStyles = document.getElementsByTagName('style');
+      for (var i = oldStyles.length - 1; i >= 0; i--) {
+        if (oldStyles[i].innerHTML.includes('font-size')) {
+          oldStyles[i].parentNode.removeChild(oldStyles[i]);
+        }
+      }
+      
+      document.body.style.fontSize = '14px';
+      var elements = document.getElementsByTagName('*');
+      for (var i = 0; i < elements.length; i++) {
+        elements[i].style.fontSize = '';
+      }
+      
+      document.body.style.backgroundColor = '#ffffff';
+      document.body.style.color = '#000000';
+      document.getElementsByClassName('content-wrapper')[0].style.backgroundColor = '#ffffff';
+      
+      var boxes = document.getElementsByClassName('box');
+      for (var i = 0; i < boxes.length; i++) {
+        boxes[i].style.backgroundColor = '#ffffff';
+        boxes[i].style.color = '#000000';
+      }
+      
+      var boxHeaders = document.getElementsByClassName('box-header');
+      for (var i = 0; i < boxHeaders.length; i++) {
+        boxHeaders[i].style.backgroundColor = '#2b2b65';
+      }
+      
+      var modals = document.getElementsByClassName('modal-content');
+      for (var i = 0; i < modals.length; i++) {
+        modals[i].style.backgroundColor = '#ffffff';
+        modals[i].style.color = '#000000';
+      }
+      
+      var modalHeaders = document.getElementsByClassName('modal-header');
+      for (var i = 0; i < modalHeaders.length; i++) {
+        modalHeaders[i].style.backgroundColor = '#ffffff';
+        modalHeaders[i].style.color = '#000000';
+      }
+    ")
+    
+    default_settings$fontsize <- 14
+    default_settings$darkMode <- FALSE
+  })
+  
+  # Info button handlers
+  observeEvent(input$climateInfoButton, {
+    showModal(modalDialog(
+      title = "Climate Change Impact Information",
+      p("Example text explaining the climate change impact by process for the selected device."),
+      p("This visualization shows the contribution of different processes to the overall climate change impact."),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
+  
+  observeEvent(input$costInfoButton, {
+    showModal(modalDialog(
+      title = "Supply Chain Costs Information",
+      p("Example text explaining the supply chain costs across DDL lifecycles."),
+      p("This visualization shows how costs vary across different lifecycle stages and recovery rates."),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
+  
+  observeEvent(input$savingsInfoButton, {
+    showModal(modalDialog(
+      title = "Cost Savings Information",
+      p("Example text explaining the total cost savings per recovery rate."),
+      p("This chart illustrates the relationship between recovery rates and total cost savings for DDL devices."),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
+  
+  observeEvent(input$infoButton, {
+    showModal(modalDialog(
+      title = "Europe Reprocessed Digital Health Devices Market by Countries, Volume (Units), 2018 - 2032",
+      p("This section visualizes the market for reprocessed digital health devices over the years."),
+      p("The map below shows the distribution of reprocessed digital health devices, with markers representing the volume of devices in each country."),
+      p("The data from 2018 to 2023 represents historical years, with actual data for those years."),
+      p("2023 is the base year, where the data is considered most accurate and serves as the foundation for future projections."),
+      p("The years 2024 to 2032 are projections, based on estimates of market trends, future developments, and expected growth in the digital health devices market."),
+      p("You can use the slider below to change the year and see how the market has evolved historically and how it is projected to change in the future."),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
+}
+
+
+# Run the  app
+shinyApp(ui = ui, server = server)
